@@ -1,3 +1,4 @@
+# This is a fully working OV5640 camera config for the typical S3 cam boards from AliExpress. For a typical 3660 or 2640 look at the other cam files.
 psram: # Configure PSRAM for camera use
   mode: octal
   speed: 80MHz
