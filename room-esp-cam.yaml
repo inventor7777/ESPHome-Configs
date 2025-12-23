@@ -1,0 +1,120 @@
+psram: # Configure PSRAM for camera use
+  mode: octal
+  speed: 80MHz
+
+output:
+  - platform: gpio # Output for the blue status LED
+    pin: GPIO2
+    id: status_led_out
+
+i2c:
+  - id: camera_i2c
+    sda: GPIO4
+    scl: GPIO5
+esp32_camera:
+  name: Room Cam
+  resolution: 1600x1200 # Max res of OV5640 is 2592x1944, OV3660 is 2048x1536, OV2640 is 1632x1232
+  jpeg_quality: 15
+  wb_mode: HOME # Fixes weird magenta hue on certain 5640 models.
+  vertical_flip: false
+  ae_level: 1
+  brightness: 1
+  agc_gain_ceiling: 16x
+  idle_framerate: 0.2 fps
+  external_clock:
+    pin: GPIO15
+    frequency: 15MHz
+  i2c_id: camera_i2c
+  data_pins: [GPIO11, GPIO9, GPIO8, GPIO10, GPIO12, GPIO18, GPIO17, GPIO16]
+  vsync_pin: GPIO6
+  href_pin: GPIO7
+  pixel_clock_pin: GPIO13
+
+sensor: # Numeric Sensors
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    unit_of_measurement: dBm
+  - platform: internal_temperature
+    name: "CPU Temp"
+    unit_of_measurement: °C
+
+text_sensor: # Text Sensors
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+
+button: # Button Actions
+  - platform: restart
+    name: "Restart"
+  
+  - platform: template
+    name: "Blink Status LED"
+    on_press:
+      then:
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+
+  - platform: template
+    name: "Pulse RGB LED"
+    on_press:
+      then:
+        - light.turn_on: 
+            id: rgb_led
+            brightness: 100%
+            red: 100%
+            green: 100%
+            blue: 100%
+            transition_length: 150ms
+        - delay: 250ms
+        - light.turn_off: 
+            id: rgb_led
+            transition_length: 1s
+
+
+light:
+  - platform: esp32_rmt_led_strip # Multicolor LED config
+    chipset: ws2812
+    rgb_order: GRB
+    pin: GPIO48
+    num_leds: 1
+    default_transition_length: 0s
+    name: "RGB LED"
+    id: rgb_led
+    restore_mode:
+      RESTORE_DEFAULT_OFF
+    effects: 
+      - pulse: 
+      - random: 
+      - flicker: 
+      - strobe:
+      - lambda:
+          name: Rainbow
+          update_interval: 3s
+          lambda: |-
+            static int state = 0;
+            auto call = id(rgb_led).make_call();
+            call.set_transition_length(3000);
+            call.set_state(true);  // Explicitly keep light ON
+
+            if (state == 0) {
+              call.set_rgb(1.0, 0.0, 0.0);  // Red
+            } else if (state == 1) {
+            call.set_rgb(0.0, 1.0, 0.0);  // Green
+            } else if (state == 2) {
+            call.set_rgb(0.0, 0.0, 1.0);  // Blue
+            }
+
+            call.perform();
+            state = (state + 1) % 3; 
+  - platform: binary # Blue LED status light config
+    name: "Status LED"
+    output: status_led_out
+    id: status_led
+    restore_mode:
+      RESTORE_DEFAULT_OFF
+    
