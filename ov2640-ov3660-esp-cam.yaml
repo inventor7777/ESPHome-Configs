@@ -4,7 +4,7 @@ psram: # Configure PSRAM for camera use
   speed: 80MHz
 
 output:
-  - platform: gpio # Output for the blue status LED
+  - platform: ledc # Output for the blue status LED
     pin: GPIO2
     id: status_led_out
 
@@ -109,10 +109,11 @@ light:
 
             call.perform();
             state = (state + 1) % 3; 
-  - platform: binary # Blue LED status light config
+  - platform: monochromatic # Blue LED status light config
     name: "Status LED"
     output: status_led_out
     id: status_led
+    default_transition_length: 0s
     restore_mode:
       RESTORE_DEFAULT_OFF
     
