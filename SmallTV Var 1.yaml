@@ -1,0 +1,464 @@
+# Fully working config for the AliExpress ESP32 based SmallTV Pro that has LEDs, binary sensors, and more. Created by inventor7777/GitHub
+
+font:
+  - file: "gfonts://Montserrat@500"
+    id: MONTSERRAT_60
+    size: 60
+    glyphs: "1234567890.°FfnaN?%-" # Only include needed glyphs for temp/humidity - remove if you want to use the 60px size elsewhere
+  - file: "gfonts://Montserrat"
+    id: MONTSERRAT_34
+    size: 34
+
+lvgl: # Set up base settings for LVGL
+  log_level: INFO
+  color_depth: 16
+  bg_color: 0x000000
+  border_width: 0
+  outline_width: 0
+  
+  style_definitions: # Drop in styles minus font size
+    - id: font_style
+      text_color: 0xFFFFFF
+      bg_color: 0x000000
+      bg_opa: TRANSP
+    - id: details_style
+      text_color: 0xFFFFFF
+      bg_color: 0x000000
+      bg_opa: TRANSP
+  
+  pages: # Define the pages
+    - id: main_page
+      bg_color: 0x000000
+      widgets: # Creates the actual widgets to display.
+        - label:
+            id: temperature_label
+            text: "?°F"
+            y: 0
+            width: 240
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_60
+            text_color: 0x00ff00
+
+        - label:
+            id: humidity_label
+            text: "?%"
+            y: 60
+            width: 240
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_60
+            text_color: 0x0000FF
+ 
+        - label:
+            id: hpa_label
+            text: "?hPa"
+            y: 185
+            width: 240
+            text_color: 0xffffff
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_34
+
+        - led:
+            id: mmwave2led
+            x: 10
+            y: 190
+            width: 30
+            height: 30
+            color: 0x000000
+
+        - led:
+            id: mmwave1led
+            x: 200
+            y: 190
+            width: 30
+            height: 30
+            color: 0x000000
+
+        - bar:
+            id: lux_bar
+            x: 15
+            y: 150
+            width: 210
+            height: 15
+            value: "15"
+            min_value: 15
+            max_value: 10000
+            indicator:
+              bg_color: 0xFFC300
+            bg_color: 0x000000
+
+
+    - id: info_page # Second page for verbose information
+      bg_color: 0x000000
+      widgets: # Creates the actual widgets to display.
+        - label:
+            id: averageroomvoltage_label
+            text: "?V"
+            y: 5
+            width: 235
+            text_color: 0xffffff
+            text_align: LEFT
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: roomwattage_label
+            text: "?W"
+            y: 5
+            width: 235
+            text_color: 0xffffff
+            text_align: RIGHT
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: lux_label
+            text: "?lux"
+            y: 95
+            width: 240
+            text_color: 0x8F6D00
+            text_align: LEFT
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: exteriorlux_label
+            text: "?lux"
+            y: 95
+            width: 240
+            text_color: 0xFFC300
+            text_align: RIGHT
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: luxtext_label
+            text: "lux"
+            y: 95
+            width: 240
+            text_color: 0xC29500
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_30
+        - label:
+            id: audioquality_label
+            text: "??? kbps"
+            y: 50
+            width: 240
+            text_color: 0xffffff
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: roomcamscript_label
+            text: "Cam ?"
+            y: 140
+            width: 240
+            text_color: 0xffffff
+            text_align: CENTER
+            styles: font_style
+            text_font: MONTSERRAT_34
+        - label:
+            id: wifisignal_label
+            text: "-?dBm"
+            #x: 35
+            y: 190
+            width: 240
+            text_color: 0x00ffff
+            text_align: LEFT
+            styles: font_style
+            text_font: MONTSERRAT_30
+        - label:
+            id: backlightbrightness_label
+            text: "?%"
+            #x: 35
+            y: 190
+            width: 240
+            text_color: 0x00ffff
+            text_align: RIGHT
+            styles: font_style
+            text_font: MONTSERRAT_30
+
+esp32_touch:
+binary_sensor:
+  - platform: esp32_touch
+    name: "Touch"
+    pin: GPIO32
+    threshold: 1350
+    id: gp32
+    filters:
+      # Small debounce filter
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_click:
+    - min_length: 5ms
+      max_length: 500ms 
+      then: # Short touch to check info page
+        - light.turn_on: backlight
+        - lvgl.page.show:
+            id: info_page
+        - delay: 10000ms
+        - lvgl.page.show:
+            id: main_page
+            animation: FADE_OUT
+            time: 1500ms
+    - min_length: 500ms
+      max_length: 2000ms
+      then: # Long touch to toggle backlight
+        - light.toggle: backlight
+        - component.update: lcd_display
+    - min_length: 2000ms
+      max_length: 5000ms
+      then: # Loooong touch to permanently switch pages
+        - lvgl.page.next:
+
+  - platform: homeassistant # Binary HA sensor
+    id: presence_sensor_occupancy
+    entity_id: binary_sensor.presence_sensor_occupancy
+    on_press:
+      then:
+        - lvgl.led.update:
+            id: mmwave1led
+            color: 0x00FF00
+    on_release:
+      then:
+        - lvgl.led.update:
+            id: mmwave1led
+            color: 0xFF0000
+
+  - platform: homeassistant # Binary HA sensor
+    id: presence_sensor_2_occupancy
+    entity_id: binary_sensor.gr_mmwave_1_radar_occupancy
+    on_press:
+      then:
+        - lvgl.led.update:
+            id: mmwave2led
+            color: 0x00FF00
+    on_release:
+      then:
+        - lvgl.led.update:
+            id: mmwave2led
+            color: 0xFF0000
+
+  - platform: homeassistant # Binary HA sensor
+    id: roomcamscript
+    entity_id: script.room_cam_snapshot
+    on_state:
+      then:
+        - lvgl.label.update:
+            id: roomcamscript_label
+            text: !lambda |-
+              static char buf[16];
+              strcpy(buf, id(roomcamscript).state ? "Active" : "Inactive");
+              return buf;
+
+sensor: # Adds the numeric sensors
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifisignal
+    unit_of_measurement: dBm
+    on_value:
+      - lvgl.label.update:
+          id: wifisignal_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.0fdBm", x);
+            return buf;
+  
+  - platform: homeassistant # HA Large Sensor 1
+    id: temperature 
+    entity_id: sensor.outside_temperature
+    on_value:
+      - lvgl.label.update:
+          id: temperature_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.1f°F", x);
+            return buf;
+  
+  - platform: homeassistant # HA Large Sensor 2
+    id: humidity
+    entity_id: sensor.outside_humidity
+    on_value:
+      - lvgl.label.update:
+          id: humidity_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.1f%%", x);
+            return buf;
+
+  - platform: homeassistant # HA First Page Sensor 3
+    id: average_hpa
+    entity_id: sensor.average_hpa
+    on_value:
+      - lvgl.label.update:
+          id: hpa_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.1f", x);
+            return buf;
+
+  - platform: homeassistant # HA Exterior Lux (1st & 2nd page)
+    id: exteriorlux
+    entity_id: sensor.exterior_lux_esp_lux
+    on_value:
+      - lvgl.bar.update:
+          id: lux_bar
+          value: !lambda |-
+            if (isnan(x)) return 0;
+            return (int) roundf(x);
+      - lvgl.label.update:
+          id: exteriorlux_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.0f", x);
+            return buf;
+
+  - platform: homeassistant # HA Room Voltage (2nd page)
+    id: averageroomvoltage
+    entity_id: sensor.average_room_voltage
+    on_value:
+      - lvgl.label.update:
+          id: averageroomvoltage_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.1fV", x);
+            return buf;
+
+  - platform: homeassistant # HA Room Wattage (2nd page)
+    id: roomwattage
+    entity_id: sensor.room_wattage
+    on_value:
+      - lvgl.label.update:
+          id: roomwattage_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.0fW", x);
+            return buf;
+  
+  - platform: homeassistant # HA Lux (2nd page)
+    id: lux
+    entity_id: sensor.gr_mmwave_1_ltr390_light
+    on_value:
+      - lvgl.label.update:
+          id: lux_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.0f", x);
+            return buf;
+  
+  - platform: homeassistant  # HA Audio Quality (2nd page)
+    id: audioquality
+    entity_id: sensor.room_surround_wiim_bit_rate
+    on_value:
+      - lvgl.label.update:
+          id: audioquality_label
+          text: !lambda |-
+            static char buf[32];
+            if (isnan(x)) {
+              snprintf(buf, sizeof(buf), "Not Playing");
+            } else {
+              snprintf(buf, sizeof(buf), "%.0f kbps", x);
+            }
+            return buf;
+
+  - platform: template # Creates a backlight sensor in %. Will not always update immediately sadly.
+    id: backlightbrightness
+    accuracy_decimals: 0
+    lambda: |-
+      return id(backlight).current_values.get_brightness() * 100.0;
+    on_value:
+      - lvgl.label.update:
+          id: backlightbrightness_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.0f%%", x);
+            return buf;
+
+text_sensor: # Text Sensors
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      icon: mdi:ip-outline
+
+button: # Button Actions
+  - platform: restart
+    name: "Restart"
+  - platform: template  
+    name: "Refresh Screen"
+    icon: mdi:refresh
+    on_press:
+      - component.update: lcd_display
+  - platform: template  
+    name: "Pause LVGL"
+    icon: mdi:pause
+    on_press:
+      - lvgl.pause: 
+  - platform: template  
+    name: "Resume LVGL"
+    icon: mdi:play
+    on_press:
+      - lvgl.resume:
+  - platform: template  
+    name: "Next Page"
+    icon: mdi:page-next-outline
+    on_press:
+      - lvgl.page.next: 
+  - platform: template  
+    name: "Previous Page"
+    icon: mdi:page-previous-outline
+    on_press:
+      - lvgl.page.previous:
+  - platform: template
+    name: Show Snow
+    icon: mdi:image-refresh-outline
+    on_press:
+      - lvgl.pause:
+          show_snow: true
+
+# Define a PWM output for the screen backlight
+output:
+  - platform: ledc
+    pin: GPIO25
+    inverted: True
+    id: backlight_pwm
+
+# Define a monochromatic, dimmable light for the backlight
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - lvgl.resume: 
+      - logger.log: "LVGL Resumed"
+    on_turn_off: 
+      - lvgl.pause: 
+          show_snow: true
+      - logger.log: "LVGL Paused, Antiburn Active"  
+    on_state:
+      then:
+        - component.update: backlightbrightness
+
+spi: # Set up SPI for the LCD
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  interface: hardware
+  id: spihwd
+
+display: # Set up LCD
+  - platform: ili9xxx
+    id: lcd_display
+    model: st7789v
+    spi_id: spihwd
+    data_rate: 40MHz
+    dc_pin: GPIO02
+    reset_pin: GPIO04
+    spi_mode: MODE3
+    dimensions:
+      width: 240
+      height: 240
+      offset_height: 0
+      offset_width: 0
+    invert_colors: true
+    auto_clear_enabled: false
+    update_interval: 60s
