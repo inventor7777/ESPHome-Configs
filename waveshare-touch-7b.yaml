@@ -58,15 +58,15 @@ light:
     default_transition_length: 750ms
     on_turn_on: 
       then:
-        - lvgl.resume: 
+        #- lvgl.resume: 
         - switch.turn_on: exio2
-        - logger.log: "LVGL Resumed, exio2 turned on"
+        #- logger.log: "LVGL Resumed, exio2 turned on"
     on_turn_off: 
       then:
-        - lvgl.pause: 
-            show_snow: true
+        #- lvgl.pause: 
+            #show_snow: true
         - switch.turn_off: exio2
-        - logger.log: "LVGL Paused, Antiburn Active"   
+        #- logger.log: "LVGL Paused, Antiburn Active"   
 
 i2c:
   - id: bus_a
@@ -94,7 +94,7 @@ display:
     update_interval: never
     auto_clear_enabled: false
     color_order: RGB
-    pclk_frequency: 16MHz
+    pclk_frequency: 16MHz # Slow down to avoid flickers
     dimensions:
       width: 1024
       height: 600
