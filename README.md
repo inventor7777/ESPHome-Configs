@@ -6,6 +6,8 @@ These files *do not include* the usual `logger:`, `api:`, etc because my intende
 
 If you have an existing ESPHome config that works, just drop these in under the board defininition and *remove any duplicates.* If you want to start fresh with this YAML, click Create Device in ESPHome, select the **New Device Setup** option, select your board, and then paste one of these configs directly after the board definitions. (this usually keeps it nice and readable) This ensures that your encryption/api/logger/board is correct right away. Watch that indentation!!
 
+Recently I, too, gave gone down the rabbit hole of `!include` so bear with me. I am trying to keep it from getting too out of hand for readability however. The folder `ESPHome Packages` holds these `!include` files.
+
 # Think of an improvement? Please share!
 Have an issue? Create an issue! I'd love to look into any issues and fix them.
 Also, I am always adding new functionality and making the code even simpler. If you improve my code in any way, or implemement it into a cool project, please share *(if you'd like)*! PRs welcome. 
