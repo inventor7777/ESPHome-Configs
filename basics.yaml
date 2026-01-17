@@ -1,0 +1,23 @@
+sensor: # Numeric Sensors
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_sensor
+    unit_of_measurement: dBm
+  - platform: internal_temperature
+    name: "CPU Temp"
+    unit_of_measurement: °C
+    id: cpu_temp
+
+text_sensor: # Text Sensors
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      icon: mdi:ip-outline
+  - platform: uptime
+    name: Uptime
+    update_interval: 2min
+
+button: # Button Actions
+  - platform: restart
+    name: "Restart"
+    id: restart_button
