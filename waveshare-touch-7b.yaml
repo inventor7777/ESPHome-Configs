@@ -1,0 +1,139 @@
+# waveshare 7” ESP32-S3N8R8 Capacitive Touch Display 1024×600
+# 512KB SRAM and 384KB ROM, with onboard 16MB Flash and 8MB PSRAM
+# https://www.waveshare.com/esp32-s3-lcd-7b.htm
+# Hardware configuration file
+
+esp32:
+  variant: ESP32S3
+  framework:
+    type: esp-idf
+  flash_size: 16MB
+  cpu_frequency: 240MHZ
+
+external_components:
+  - source: github://pr#10071
+    components: [waveshare_io_ch32v003]
+    refresh: 1h
+
+waveshare_io_ch32v003:
+  - id: waveshare_io_ch32v003_hub
+
+sensor: # ADC
+  - platform: waveshare_io_ch32v003
+    name: "ADC"
+    id: wave_adc
+    # Convert ADC value to voltage (10-bit ADC, 3.3V reference, and 3:1 voltage divider)
+    # value = adc * 3 * 3.3V / 1023.0
+    reference_voltage: 9.9  # so returned value is ADC * 9.9 / 1023.0
+
+output:
+  - platform: waveshare_io_ch32v003
+    id: main_backlight_output
+    inverted: true
+    zero_means_zero: true
+    min_power: 0.03
+    max_power: 1.0
+
+  - platform: ledc
+    pin: GPIO6
+    id: buzzer
+
+switch:
+  - platform: gpio
+    internal: True
+    id: exio2
+    restore_mode: ALWAYS_ON
+    pin: 
+      waveshare_io_ch32v003: waveshare_io_ch32v003_hub
+      number: 2
+      mode: 
+        output: true
+
+light:
+  - platform: monochromatic
+    output: main_backlight_output
+    name: Display Backlight
+    id: main_backlight
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 750ms
+    on_turn_on: 
+      then:
+        - lvgl.resume: 
+        - switch.turn_on: exio2
+        - logger.log: "LVGL Resumed, exio2 turned on"
+    on_turn_off: 
+      then:
+        - lvgl.pause: 
+            show_snow: true
+        - switch.turn_off: exio2
+        - logger.log: "LVGL Paused, Antiburn Active"   
+
+i2c:
+  - id: bus_a
+    sda: 8
+    scl: 9
+  
+psram:
+  mode: octal
+  speed: 80MHz
+
+touchscreen:
+  platform: gt911
+  id: gt911_touchscreen
+  display: main_display
+  i2c_id: bus_a
+  interrupt_pin: GPIO4
+  reset_pin:
+    waveshare_io_ch32v003: waveshare_io_ch32v003_hub
+    number: 1
+    mode: OUTPUT
+
+display:
+  - platform: rpi_dpi_rgb
+    id: main_display
+    update_interval: never
+    auto_clear_enabled: false
+    color_order: RGB
+    pclk_frequency: 16MHz
+    dimensions:
+      width: 1024
+      height: 600
+    de_pin:
+      number: 5
+    hsync_pin:
+      number: 46
+      ignore_strapping_warning: true
+    vsync_pin:
+      number: 3
+      ignore_strapping_warning: true
+    pclk_pin: 7
+    pclk_inverted: true
+    reset_pin:
+      waveshare_io_ch32v003: waveshare_io_ch32v003_hub
+      number: 3
+    hsync_back_porch: 152
+    hsync_front_porch: 48
+    hsync_pulse_width: 162
+    vsync_back_porch: 13
+    vsync_front_porch: 3
+    vsync_pulse_width: 45
+    data_pins:
+      red:
+        - 1         #r3
+        - 2         #r4
+        - 42        #r5
+        - 41        #r6
+        - 40        #r7
+      blue:
+        - 14        #b3
+        - 38        #b4
+        - 18        #b5
+        - 17        #b6
+        - 10        #b7
+      green:
+        - 39        #g2
+        - 0         #g3
+        - 45        #g4
+        - 48        #g5
+        - 47        #g6
+        - 21        #g7
