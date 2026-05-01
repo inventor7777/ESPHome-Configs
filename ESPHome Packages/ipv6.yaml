@@ -1,0 +1,19 @@
+text_sensor:
+  - platform: wifi_info
+    ip_address: 
+      id: extended_ip_address
+      address_1:
+        name: IP Address 1
+        id: ip_address_1
+        icon: mdi:ip-network-outline
+      address_2:
+        name: IP Address 2
+        id: ip_address_2
+        icon: mdi:ip-network-outline
+      address_3:
+        name: IP Address 3
+        id: ip_address_3
+        icon: mdi:ip-network-outline
+           
+network:
+    enable_ipv6: true

@@ -1,0 +1,132 @@
+esphome:
+  on_boot:
+    - priority: 600
+      then:
+        - delay: 1s
+        - if:
+            condition:
+              light.is_on: main_backlight
+            then:
+              - lvgl.page.show: main_page
+            else:
+              - lvgl.page.show: blank_page
+
+button: # LVGL Button Actions
+  - platform: template  
+    name: "Refresh Screen"
+    icon: mdi:refresh
+    on_press:
+      - component.update: main_display
+  - platform: template  
+    name: "Pause LVGL"
+    icon: mdi:pause
+    on_press:
+      - lvgl.pause: 
+  - platform: template  
+    name: "Resume LVGL"
+    icon: mdi:play
+    on_press:
+      - lvgl.resume:
+  - platform: template  
+    name: "Next Page"
+    icon: mdi:page-next-outline
+    on_press:
+      - lvgl.page.next: 
+  - platform: template  
+    name: "Previous Page"
+    icon: mdi:page-previous-outline
+    on_press:
+      - lvgl.page.previous:
+  - platform: template
+    name: Show Snow
+    icon: mdi:image-refresh-outline
+    on_press:
+      - lvgl.pause:
+          show_snow: true
+  - platform: template
+    name: "Reset LVGL Idle Timer"
+    icon: mdi:timer-sand
+    on_press:
+      then:
+        - lambda: |-
+            lv_disp_trig_activity(NULL);
+            
+text_sensor:
+  - platform: template
+    name: "LVGL Current Page"
+    id: current_lvgl_page
+    icon: mdi:tablet-dashboard
+    update_interval: never
+    
+interval:
+  - interval: 5min
+    then:
+      - script.execute: update_lvgl_page
+    
+lvgl:
+  on_draw_end:
+    - script.execute: update_lvgl_page
+  on_idle:
+    - timeout: 15s
+      then:
+        - if:
+            condition:
+              light.is_on: main_backlight
+            then:
+              - lvgl.page.show: 
+                  id: main_page
+              - logger.log: "LVGL has been idle for 15 seconds, switching to main page"
+            else:
+              - logger.log: "LVGL has been idle for 15 seconds, but backlight is off so page switch was skipped"
+    - timeout: 60s
+      then:
+        - if:
+            condition:
+              lambda: |-
+                auto now = id(sntp_time).now();
+                if (!now.is_valid()) return false;
+
+                int minutes = now.hour * 60 + now.minute;
+
+                // Night window: 22:00 → 04:30 (wraps midnight)
+                return (minutes >= (22 * 60)) || (minutes < (4 * 60 + 30));
+            then:
+              - light.turn_off: main_backlight
+              - logger.log: "Time appears to be between 22:00 & 04:30, turning off backlight"
+            else:
+              - logger.log: "Time appears to not be between 22:00 & 04:30, keeping backlight on"
+  pages: # Add a blank page
+    - id: blank_page
+      skip: true
+      bg_color: 0x000000
+      
+script:
+  - id: update_lvgl_page
+    then:
+      - if:
+          condition:
+            lvgl.page.is_showing: main_page
+          then:
+            - text_sensor.template.publish:
+                id: current_lvgl_page
+                state: "Main Page"
+          else:
+            - if:
+                condition:
+                  lvgl.page.is_showing: second_page
+                then:
+                  - text_sensor.template.publish:
+                      id: current_lvgl_page
+                      state: "Second Page"
+                else:
+                  - if:
+                      condition:
+                        lvgl.page.is_showing: blank_page
+                      then:
+                        - text_sensor.template.publish:
+                            id: current_lvgl_page
+                            state: "Blank Page"
+                      else:
+                        - text_sensor.template.publish:
+                            id: current_lvgl_page
+                            state: "Unknown"

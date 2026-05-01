@@ -1,0 +1,32 @@
+time:
+  - id: !extend sntp_time
+    on_time:
+      - hours: 8
+        minutes: 45
+        seconds: 0
+        days_of_week: SUN
+        then:
+        - light.turn_off: main_backlight
+
+      - hours: 12
+        minutes: 15
+        seconds: 0
+        days_of_week: SUN
+        then:
+          - light.turn_on: main_backlight
+          
+      - hours: 0
+        minutes: 0
+        seconds: 0
+        then:
+        - logger.log: "Activating antiburn for 30 minutes"
+        - lvgl.pause:
+            show_snow: true
+
+      - hours: 0
+        minutes: 30
+        seconds: 0
+        then:
+          - logger.log: "Antiburn session complete, pausing LVGL"
+          - lvgl.page.show: blank_page
+          - lvgl.pause:

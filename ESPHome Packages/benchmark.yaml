@@ -1,0 +1,649 @@
+substitutions:
+  benchmark_version: "1.0.0"
+  benchmark_gpio_pin: GPIO4
+  bench_cpu_iterations: "3300000"
+  bench_millis_iterations: "88000"
+  bench_sensor_publish_iterations: "198000"
+  bench_binary_publish_iterations: "110000"
+  bench_text_publish_iterations: "44000"
+  bench_gpio_iterations: "55000"
+  bench_math_iterations: "660000"
+  bench_memory_iterations: "1980000"
+  bench_allocation_iterations: "10000"
+  bench_branch_iterations: "990000"
+  bench_extreme_cpu_multiplier: "108"
+  bench_extreme_millis_multiplier: "22"
+  bench_extreme_sensor_multiplier: "11"
+  bench_extreme_binary_multiplier: "11"
+  bench_extreme_text_multiplier: "11"
+  bench_extreme_gpio_multiplier: "11"
+  bench_extreme_math_multiplier: "108"
+  bench_extreme_memory_multiplier: "108"
+  bench_extreme_allocation_multiplier: "11"
+  bench_extreme_branch_multiplier: "108"
+  bench_soak_cpu_multiplier: "560"
+  bench_soak_millis_multiplier: "100"
+  bench_soak_sensor_multiplier: "50"
+  bench_soak_binary_multiplier: "50"
+  bench_soak_text_multiplier: "50"
+  bench_soak_gpio_multiplier: "50"
+  bench_soak_math_multiplier: "560"
+  bench_soak_memory_multiplier: "560"
+  bench_soak_allocation_multiplier: "0"
+  bench_soak_branch_multiplier: "560"
+
+select:
+  - platform: template
+    name: "ESPHome Benchmark Mode"
+    id: bench_mode
+    entity_category: config
+    optimistic: true
+    options:
+      - "Normal"
+      - "Extreme"
+      - "Soak"
+    initial_option: "Normal"
+    set_action:
+      - logger.log:
+          format: "Benchmark mode set to %s"
+          args: ["x.c_str()"]
+
+output:
+  - platform: gpio
+    id: bench_gpio_output
+    pin:
+      number: ${benchmark_gpio_pin}
+      mode:
+        output: true
+
+globals:
+  - id: bench_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: bench_mode_code
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: bench_stage
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: bench_stage_progress
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_stage_total_iterations
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_chunk_size
+    type: uint32_t
+    restore_value: no
+    initial_value: "32768"
+  - id: bench_total_start_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_stage_start_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_cpu_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_millis_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_sensor_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_binary_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_text_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_gpio_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_math_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_memory_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_branch_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_allocation_iterations_run
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_cpu_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_millis_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_sensor_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_binary_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_text_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_gpio_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_math_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_memory_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_allocation_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_branch_time_us
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_cpu_accumulator
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_millis_accumulator
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: bench_math_accumulator
+    type: float
+    restore_value: no
+    initial_value: "1.0"
+  - id: bench_branch_accumulator
+    type: int32_t
+    restore_value: no
+    initial_value: "0"
+
+sensor:
+  - platform: template
+    name: "ESPHome Benchmark Score"
+    id: bench_score
+    unit_of_measurement: "pts"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:speedometer
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Total Time"
+    id: bench_total_time
+    unit_of_measurement: "ms"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    icon: mdi:timer-outline
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark CPU Loop"
+    id: bench_cpu_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:cpu-64-bit
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark millis()"
+    id: bench_millis_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:clock-outline
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Sensor Publish"
+    id: bench_sensor_publish_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:gauge
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Binary Publish"
+    id: bench_binary_publish_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:toggle-switch
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Text Publish"
+    id: bench_text_publish_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:text-box-outline
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark GPIO Toggle"
+    id: bench_gpio_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:dip-switch
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Math"
+    id: bench_math_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:function-variant
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Memory"
+    id: bench_memory_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:memory
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Allocation"
+    id: bench_allocation_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:memory-arrow-down
+    update_interval: never
+
+  - platform: template
+    name: "ESPHome Benchmark Branch Logic"
+    id: bench_branch_time
+    unit_of_measurement: "us"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    icon: mdi:source-branch
+    update_interval: never
+
+  - platform: template
+    id: bench_internal_sensor
+    internal: true
+    update_interval: never
+
+binary_sensor:
+  - platform: template
+    name: "ESPHome Benchmark Running"
+    id: bench_running
+    entity_category: diagnostic
+    device_class: running
+    lambda: |-
+      return {};
+
+  - platform: template
+    id: bench_internal_binary
+    internal: true
+    lambda: |-
+      return {};
+
+text_sensor:
+  - platform: template
+    name: "ESPHome Benchmark Report"
+    id: bench_report
+    entity_category: diagnostic
+    icon: mdi:file-chart-outline
+    update_interval: never
+
+  - platform: template
+    id: bench_internal_text
+    internal: true
+    update_interval: never
+
+interval:
+  - interval: 1ms
+    then:
+      - lambda: |-
+          if (!id(bench_active)) {
+            return;
+          }
+
+          static uint32_t mem_buffer[256];
+          auto *bench_sensor = id(bench_internal_sensor);
+          auto *bench_binary = id(bench_internal_binary);
+          auto *bench_text = id(bench_internal_text);
+          auto *bench_gpio = id(bench_gpio_output);
+
+          const uint32_t remaining = id(bench_stage_total_iterations) - id(bench_stage_progress);
+          const uint32_t chunk = remaining < id(bench_chunk_size) ? remaining : id(bench_chunk_size);
+          const uint32_t base_index = id(bench_stage_progress);
+
+          switch (id(bench_stage)) {
+            case 0:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                id(bench_cpu_accumulator) += (i ^ 0x5A5A5A5AUL);
+              }
+              break;
+            case 1:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                id(bench_millis_accumulator) += millis();
+              }
+              break;
+            case 2:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                bench_sensor->publish_state(static_cast<float>(i & 1023U));
+              }
+              break;
+            case 3:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                bench_binary->publish_state((i & 1U) != 0U);
+              }
+              break;
+            case 4:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                bench_text->publish_state((i & 1U) != 0U ? "bench-a" : "bench-b");
+              }
+              break;
+            case 5:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                bench_gpio->turn_on();
+                bench_gpio->turn_off();
+              }
+              break;
+            case 6:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t n = base_index + offset + 1U;
+                id(bench_math_accumulator) += (static_cast<float>(n) * 0.5f) / (static_cast<float>(n) + 1.0f);
+              }
+              break;
+            case 7:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                mem_buffer[i & 0xFFU] ^= (i * 2654435761UL);
+              }
+              break;
+            case 8:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const size_t size = 32U + ((base_index + offset) & 0x3FU);
+                auto *ptr = new uint8_t[size];
+                ptr[0] = static_cast<uint8_t>(size);
+                ptr[size - 1] = static_cast<uint8_t>(size ^ 0x5AU);
+                delete[] ptr;
+              }
+              break;
+            case 9:
+              for (uint32_t offset = 0; offset < chunk; offset++) {
+                const uint32_t i = base_index + offset;
+                if ((i % 15U) == 0U) {
+                  id(bench_branch_accumulator) += 3;
+                } else if ((i & 1U) == 0U) {
+                  id(bench_branch_accumulator) -= 1;
+                } else {
+                  id(bench_branch_accumulator) += 2;
+                }
+              }
+              break;
+            default:
+              break;
+          }
+
+          id(bench_stage_progress) += chunk;
+          App.feed_wdt();
+          yield();
+
+          if (id(bench_stage_progress) < id(bench_stage_total_iterations)) {
+            return;
+          }
+
+          const uint32_t stage_elapsed_us = micros() - id(bench_stage_start_us);
+          switch (id(bench_stage)) {
+            case 0:
+              id(bench_cpu_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "CPU complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 1;
+              id(bench_stage_total_iterations) = id(bench_millis_iterations_run);
+              break;
+            case 1:
+              id(bench_millis_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "millis() complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 2;
+              id(bench_stage_total_iterations) = id(bench_sensor_iterations_run);
+              break;
+            case 2:
+              id(bench_sensor_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Sensor publish complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 3;
+              id(bench_stage_total_iterations) = id(bench_binary_iterations_run);
+              break;
+            case 3:
+              id(bench_binary_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Binary publish complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 4;
+              id(bench_stage_total_iterations) = id(bench_text_iterations_run);
+              break;
+            case 4:
+              id(bench_text_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Text publish complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 5;
+              id(bench_stage_total_iterations) = id(bench_gpio_iterations_run);
+              bench_gpio->turn_off();
+              break;
+            case 5:
+              id(bench_gpio_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "GPIO complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 6;
+              id(bench_stage_total_iterations) = id(bench_math_iterations_run);
+              break;
+            case 6:
+              id(bench_math_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Math complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 7;
+              id(bench_stage_total_iterations) = id(bench_memory_iterations_run);
+              break;
+            case 7:
+              id(bench_memory_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Memory complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 8;
+              id(bench_stage_total_iterations) = id(bench_allocation_iterations_run);
+              break;
+            case 8:
+              id(bench_allocation_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Allocation complete: %u us", stage_elapsed_us);
+              id(bench_stage) = 9;
+              id(bench_stage_total_iterations) = id(bench_branch_iterations_run);
+              break;
+            case 9: {
+              id(bench_branch_time_us) = stage_elapsed_us;
+              ESP_LOGI("bench", "Branch complete: %u us", stage_elapsed_us);
+              const uint32_t total_time_us = micros() - id(bench_total_start_us);
+              const float total_time_ms = static_cast<float>(total_time_us) / 1000.0f;
+              auto score_part = [](uint32_t operations, uint32_t elapsed_us) -> float {
+                if (elapsed_us == 0U) {
+                  return 0.0f;
+                }
+                return (static_cast<float>(operations) / static_cast<float>(elapsed_us)) * 1000.0f;
+              };
+              const float score =
+                score_part(id(bench_cpu_iterations_run), id(bench_cpu_time_us)) +
+                score_part(id(bench_millis_iterations_run), id(bench_millis_time_us)) +
+                score_part(id(bench_sensor_iterations_run), id(bench_sensor_time_us)) +
+                score_part(id(bench_binary_iterations_run), id(bench_binary_time_us)) +
+                score_part(id(bench_text_iterations_run), id(bench_text_time_us)) +
+                score_part(id(bench_gpio_iterations_run) * 2U, id(bench_gpio_time_us)) +
+                score_part(id(bench_math_iterations_run), id(bench_math_time_us)) +
+                score_part(id(bench_memory_iterations_run), id(bench_memory_time_us)) +
+                score_part(id(bench_allocation_iterations_run), id(bench_allocation_time_us)) +
+                score_part(id(bench_branch_iterations_run), id(bench_branch_time_us));
+
+              id(bench_cpu_time).publish_state(id(bench_cpu_time_us));
+              id(bench_millis_time).publish_state(id(bench_millis_time_us));
+              id(bench_sensor_publish_time).publish_state(id(bench_sensor_time_us));
+              id(bench_binary_publish_time).publish_state(id(bench_binary_time_us));
+              id(bench_text_publish_time).publish_state(id(bench_text_time_us));
+              id(bench_gpio_time).publish_state(id(bench_gpio_time_us));
+              id(bench_math_time).publish_state(id(bench_math_time_us));
+              id(bench_memory_time).publish_state(id(bench_memory_time_us));
+              id(bench_allocation_time).publish_state(id(bench_allocation_time_us));
+              id(bench_branch_time).publish_state(id(bench_branch_time_us));
+              id(bench_total_time).publish_state(total_time_ms);
+              id(bench_score).publish_state(score);
+
+              char report[512];
+              snprintf(
+                report,
+                sizeof(report),
+                "Mode %s | Score %.0f | Total %.1f ms | CPU %u us | millis %u us | sensor %u us | binary %u us | text %u us | GPIO %u us | math %u us | memory %u us | alloc %u us | branch %u us",
+                id(bench_mode_code) == 2 ? "Soak" : (id(bench_mode_code) == 1 ? "Extreme" : "Normal"),
+                score,
+                total_time_ms,
+                id(bench_cpu_time_us),
+                id(bench_millis_time_us),
+                id(bench_sensor_time_us),
+                id(bench_binary_time_us),
+                id(bench_text_time_us),
+                id(bench_gpio_time_us),
+                id(bench_math_time_us),
+                id(bench_memory_time_us),
+                id(bench_allocation_time_us),
+                id(bench_branch_time_us)
+              );
+
+              id(bench_report).publish_state(report);
+              id(bench_running).publish_state(false);
+              id(bench_active) = false;
+              ESP_LOGI("bench", "%s", report);
+              return;
+            }
+            default:
+              break;
+          }
+
+          id(bench_stage_progress) = 0;
+          id(bench_stage_start_us) = micros();
+
+button:
+  - platform: template
+    name: "Run ESPHome Benchmark"
+    id: run_benchmark_button
+    icon: mdi:play-circle-outline
+    entity_category: diagnostic
+    on_press:
+      then:
+        - lambda: |-
+            if (id(bench_active)) {
+              ESP_LOGW("bench", "Benchmark run requested while another run is active");
+              id(bench_report).publish_state("Benchmark already running");
+              return;
+            }
+
+            const auto current_mode = id(bench_mode).current_option();
+            const bool extreme_mode = current_mode == "Extreme";
+            const bool soak_mode = current_mode == "Soak";
+            const uint32_t cpu_multiplier = soak_mode ? ${bench_soak_cpu_multiplier}U :
+                                           (extreme_mode ? ${bench_extreme_cpu_multiplier}U : 1U);
+            const uint32_t millis_multiplier = soak_mode ? ${bench_soak_millis_multiplier}U :
+                                              (extreme_mode ? ${bench_extreme_millis_multiplier}U : 1U);
+            const uint32_t sensor_multiplier = soak_mode ? ${bench_soak_sensor_multiplier}U :
+                                              (extreme_mode ? ${bench_extreme_sensor_multiplier}U : 1U);
+            const uint32_t binary_multiplier = soak_mode ? ${bench_soak_binary_multiplier}U :
+                                              (extreme_mode ? ${bench_extreme_binary_multiplier}U : 1U);
+            const uint32_t text_multiplier = soak_mode ? ${bench_soak_text_multiplier}U :
+                                            (extreme_mode ? ${bench_extreme_text_multiplier}U : 1U);
+            const uint32_t gpio_multiplier = soak_mode ? ${bench_soak_gpio_multiplier}U :
+                                            (extreme_mode ? ${bench_extreme_gpio_multiplier}U : 1U);
+            const uint32_t math_multiplier = soak_mode ? ${bench_soak_math_multiplier}U :
+                                            (extreme_mode ? ${bench_extreme_math_multiplier}U : 1U);
+            const uint32_t memory_multiplier = soak_mode ? ${bench_soak_memory_multiplier}U :
+                                              (extreme_mode ? ${bench_extreme_memory_multiplier}U : 1U);
+            const uint32_t allocation_multiplier = soak_mode ? ${bench_soak_allocation_multiplier}U :
+                                                 (extreme_mode ? ${bench_extreme_allocation_multiplier}U : 1U);
+            const uint32_t branch_multiplier = soak_mode ? ${bench_soak_branch_multiplier}U :
+                                              (extreme_mode ? ${bench_extreme_branch_multiplier}U : 1U);
+
+            id(bench_mode_code) = soak_mode ? 2 : (extreme_mode ? 1 : 0);
+            id(bench_chunk_size) = soak_mode ? 524288U : (extreme_mode ? 1048576U : 0xFFFFFFFFU);
+            id(bench_cpu_iterations_run) = ${bench_cpu_iterations} * cpu_multiplier;
+            id(bench_millis_iterations_run) = ${bench_millis_iterations} * millis_multiplier;
+            id(bench_sensor_iterations_run) = ${bench_sensor_publish_iterations} * sensor_multiplier;
+            id(bench_binary_iterations_run) = ${bench_binary_publish_iterations} * binary_multiplier;
+            id(bench_text_iterations_run) = ${bench_text_publish_iterations} * text_multiplier;
+            id(bench_gpio_iterations_run) = ${bench_gpio_iterations} * gpio_multiplier;
+            id(bench_math_iterations_run) = ${bench_math_iterations} * math_multiplier;
+            id(bench_memory_iterations_run) = ${bench_memory_iterations} * memory_multiplier;
+            id(bench_allocation_iterations_run) = ${bench_allocation_iterations} * allocation_multiplier;
+            id(bench_branch_iterations_run) = ${bench_branch_iterations} * branch_multiplier;
+
+            id(bench_cpu_time_us) = 0;
+            id(bench_millis_time_us) = 0;
+            id(bench_sensor_time_us) = 0;
+            id(bench_binary_time_us) = 0;
+            id(bench_text_time_us) = 0;
+            id(bench_gpio_time_us) = 0;
+            id(bench_math_time_us) = 0;
+            id(bench_memory_time_us) = 0;
+            id(bench_allocation_time_us) = 0;
+            id(bench_branch_time_us) = 0;
+            id(bench_cpu_accumulator) = 0;
+            id(bench_millis_accumulator) = 0;
+            id(bench_math_accumulator) = 1.0f;
+            id(bench_branch_accumulator) = 0;
+
+            id(bench_stage) = 0;
+            id(bench_stage_progress) = 0;
+            id(bench_stage_total_iterations) = id(bench_cpu_iterations_run);
+            id(bench_total_start_us) = micros();
+            id(bench_stage_start_us) = id(bench_total_start_us);
+            id(bench_active) = true;
+
+            id(bench_running).publish_state(true);
+            id(bench_report).publish_state("Benchmark in progress");
+            id(bench_gpio_output).turn_off();
+            ESP_LOGI("bench", "Starting benchmark in %s mode", current_mode.c_str());
+            ESP_LOGI(
+              "bench",
+              "Benchmark v%s workload: CPU=%u millis=%u sensor=%u binary=%u text=%u gpio=%u math=%u memory=%u alloc=%u branch=%u chunk=%u",
+              "${benchmark_version}",
+              id(bench_cpu_iterations_run),
+              id(bench_millis_iterations_run),
+              id(bench_sensor_iterations_run),
+              id(bench_binary_iterations_run),
+              id(bench_text_iterations_run),
+              id(bench_gpio_iterations_run),
+              id(bench_math_iterations_run),
+              id(bench_memory_iterations_run),
+              id(bench_allocation_iterations_run),
+              id(bench_branch_iterations_run),
+              id(bench_chunk_size)
+            );

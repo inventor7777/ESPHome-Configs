@@ -1,0 +1,80 @@
+bme68x_bsec2_i2c:
+  id: bme680
+  model: bme680
+  address: 0x77
+  operating_age: 28d
+  sample_rate: LP
+  supply_voltage: 3.3V
+
+sensor:
+  - platform: bme68x_bsec2
+    id: bme680_sensor
+    bme68x_bsec2_id: bme680
+    temperature:
+      name: "BME680 Temperature"
+      id: bme680_temperature
+      filters:
+        - offset: -1
+        - delta: 0.2
+    pressure:
+      name: "BME680 Pressure"
+      icon: mdi:gauge
+      filters:
+        - delta: 0.1
+    humidity:
+      name: "BME680 Humidity"
+      id: bme680_humidity
+      filters:
+        - delta: 0.2
+    iaq:
+      name: "BME680 IAQ"
+      id: bme680_iaq
+      icon: mdi:molecule
+      filters:
+        - delta: 1
+    co2_equivalent:
+      name: "BME680 CO2 Equivalent"
+      id: bme680_co2_equivalent
+      filters:
+        - delta: 15
+    breath_voc_equivalent:
+      name: "BME680 Breath VOC Equivalent"
+      icon: mdi:molecule
+      filters:
+        - delta: 0.2
+    gas_resistance:
+      name: "BME680 Gas Resistance"
+      id: bme680_gas_resistance
+      filters:
+        - delta: 4000
+        
+text_sensor:
+  - platform: bme68x_bsec2
+    bme68x_bsec2_id: bme680
+    id: bme680_text_sensor
+    iaq_accuracy:
+      name: "BME680 IAQ Accuracy"
+      id: bme680_iaq_accuracy
+      entity_category: diagnostic
+
+  - platform: template
+    name: "BME680 IAQ Classification"
+    icon: mdi:molecule
+    lambda: |-
+      if (int(id(bme680_iaq).get_state()) <= 50) {
+        return {"Excellent"};
+      } else if (int(id(bme680_iaq).get_state()) >= 51 && int(id(bme680_iaq).get_state()) <= 100) {
+        return {"Good"};
+      } else if (int(id(bme680_iaq).get_state()) >= 101 && int(id(bme680_iaq).get_state()) <= 150) {
+        return {"Lightly polluted"};
+      } else if (int(id(bme680_iaq).get_state()) >= 151 && int(id(bme680_iaq).get_state()) <= 200) {
+        return {"Moderately polluted"};
+      } else if (int(id(bme680_iaq).get_state()) >= 201 && int(id(bme680_iaq).get_state()) <= 250) {
+        return {"Heavily polluted"};
+      } else if (int(id(bme680_iaq).get_state()) >= 251 && int(id(bme680_iaq).get_state()) <= 350) {
+        return {"Severely polluted"};
+      } else if (int(id(bme680_iaq).get_state()) >= 351 && int(id(bme680_iaq).get_state()) <= 500) {
+        return {"Extremely polluted"};
+      } else {
+        return {"Error"};
+      }

@@ -1,0 +1,94 @@
+remote_transmitter:
+  - id: !extend rf_transmitter
+    on_transmit:
+      then:
+        - logger.log: "Transmitting; starting TX on CC1101"
+        - cc1101.begin_tx
+    on_complete:
+      then:
+        - if:
+            condition:
+              switch.is_on: cc1101_sleep
+            then:
+              - logger.log: "Transmit complete, sleep switch is on therefore putting CC1101 to sleep"
+              - cc1101.set_idle
+            else:
+              - logger.log: "Transmit complete, starting RX on CC1101"
+              - cc1101.begin_rx
+        - button.press: blink_status_led
+        - select.set:
+            id: rf_test_frequency
+            option: "Off"
+
+switch:
+  - platform: template
+    name: "CC1101 Sleep"
+    id: cc1101_sleep
+    icon: "mdi:sleep"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - logger.log: "Sleep switch turned on, putting CC1101 to sleep"
+      - cc1101.set_idle
+    turn_off_action:
+      - logger.log: "Sleep switch turned off, starting RX on CC1101"
+      - cc1101.begin_rx
+
+select:
+  - platform: template
+    name: "RF Test Frequency"
+    id: rf_test_frequency
+    icon: "mdi:radio-tower"
+    optimistic: true
+    entity_category: DIAGNOSTIC
+    options:
+      - "Off"
+      - "304.25"
+      - "315"
+      - "433.92"
+      - "868"
+      - "915"
+    initial_option: "Off"
+    set_action:
+      - if:
+          condition:
+            lambda: 'return x != "Off";'
+          then:
+            - cc1101.set_frequency:
+                value: !lambda |-
+                  if (x == "304.25") return 304.25e6f;
+                  if (x == "315") return 315.0e6f;
+                  if (x == "433.92") return 433.92e6f;
+                  if (x == "868") return 868.0e6f;
+                  return 915.0e6f;
+            - cc1101.set_output_power: 11
+            - delay: 20ms
+            - remote_transmitter.transmit_raw:
+                transmitter_id: rf_transmitter
+                code: [10000, -10000]
+                carrier_frequency: 0
+                repeat:
+                  times: 10
+                  wait_time: 0ms
+
+api:  
+  actions:
+    - action: transmit_rf_raw
+      variables:
+        Frequency: float
+        Output_Power: float
+        Code: int[]
+        Wait_Time: int
+        Repeats: int
+      then:
+        - cc1101.set_frequency:
+            value: !lambda 'return Frequency * 1000000.0f;'
+        - cc1101.set_output_power:
+            value: !lambda 'return Output_Power;'
+        - remote_transmitter.transmit_raw:
+            transmitter_id: rf_transmitter
+            code: !lambda 'return Code;'
+            carrier_frequency: 0
+            repeat:
+              times: !lambda 'return Repeats;'
+              wait_time: !lambda 'return Wait_Time;'

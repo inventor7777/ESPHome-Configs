@@ -1,0 +1,39 @@
+remote_transmitter:
+  - id: !extend ir_transmitter
+    on_transmit:
+      then:
+        - logger.log: "Starting IR transmit"
+    on_complete:
+      then:
+        - logger.log: "IR transmit complete"
+        - button.press: blink_status_led
+            
+api:
+  actions:
+    - action: transmit_ir_nec
+      variables:
+        Address: int
+        Command: int
+        Wait_Time: int
+        Repeats: int
+      then:
+        - remote_transmitter.transmit_nec:
+            transmitter_id: ir_transmitter
+            address: !lambda 'return Address;'
+            command: !lambda 'return Command;'
+            repeat:
+              times: !lambda 'return Repeats;'
+              wait_time: !lambda 'return Wait_Time;'
+
+    - action: transmit_ir_pronto
+      variables:
+        Code: string
+        Wait_Time: int
+        Repeats: int
+      then:
+        - remote_transmitter.transmit_pronto:
+            transmitter_id: ir_transmitter
+            data: !lambda 'return Code;'
+            repeat:
+              times: !lambda 'return Repeats;'
+              wait_time: !lambda 'return Wait_Time;'

@@ -7,15 +7,20 @@ sensor: # Numeric Sensors
     name: "CPU Temp"
     unit_of_measurement: °C
     id: cpu_temp
+  - platform: uptime
+    type: seconds
+    name: "ESP Uptime"
+    filters:
+      - multiply: 0.0000115741
+    unit_of_measurement: "d"
+    accuracy_decimals: 4
 
 text_sensor: # Text Sensors
   - platform: wifi_info
     ip_address:
       name: "IP Address"
       icon: mdi:ip-outline
-  - platform: uptime
-    name: Uptime
-    update_interval: 2min
+      id: main_ip
 
 button: # Button Actions
   - platform: restart

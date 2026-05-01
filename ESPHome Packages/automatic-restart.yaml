@@ -1,0 +1,8 @@
+time:
+  - id: !extend sntp_time
+    on_time:
+      - hours: 3
+        minutes: 30
+        seconds: 0
+        then:
+          - button.press: restart_button

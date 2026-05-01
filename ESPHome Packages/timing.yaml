@@ -1,0 +1,31 @@
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Chicago"
+    servers:
+      - time.cloudflare.com
+      - time.google.com
+      - pool.ntp.org
+
+sun:
+  latitude: 30.3530
+  longitude: -91.0974
+
+sensor:
+  - platform: sun
+    name: Sun Elevation
+    type: elevation
+
+text_sensor:
+  - platform: template
+    name: "ESP Time"
+    id: esp_time_text
+    icon: mdi:web-clock
+    entity_category: diagnostic
+    update_interval: 120s
+    lambda: |-
+      auto now = id(sntp_time).now();
+      if (!now.is_valid()) return std::string("----");
+      char buf[6];
+      snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
+      return std::string(buf);

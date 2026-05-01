@@ -1,0 +1,153 @@
+rtttl:
+  id: rtttl_buzzer
+  output: buzzer
+  on_finished_playback:
+    - select.set:
+        id: rtttl_tune_select
+        option: "Off"   
+        
+button:
+  - platform: template
+    name: "Stop"
+    icon: "mdi:volume-mute"  
+    on_press: 
+      - rtttl.stop:
+
+select:
+  - platform: template
+    name: "Tune"
+    id: rtttl_tune_select
+    icon: "mdi:playlist-music"
+    optimistic: true
+    options:
+      - "Off"
+      - "Scale Up"
+      - "Nokia"
+      - "Round The Mountain"
+      - "Yankee Doodle"
+      - "Amazing Grace"
+      - "Turkish March"
+      - "Turkish March Low"
+      - "5th Symphony"
+      - "September"
+      - "Star Wars"
+      - "Mission Impossible"
+      - "Mario"
+      - "Jingle Bells"
+      - "We Wish You A Merry Christmas"
+      - "Greensleeves"
+      - "Let It Snow"
+      - "Scotland"
+      - "Scotland Low"
+      - "US Anthem"
+      - "GB Anthem"
+    initial_option: "Off"
+    set_action:
+      - if:
+          condition:
+            lambda: 'return x == "Scale Up";'
+          then:
+            - rtttl.play: "scale_up:d=32,o=5,b=100:c,c#,d#,e,f#,g#,a#,b"
+      - if:
+          condition:
+            lambda: 'return x == "Round The Mountain";'
+          then:
+            - rtttl.play: "ShellBeC:d=8,o=5,b=140:c,d,f.,16f,f,f,d,c,d,c,2f.,f,g,a.,16a,a,a,c6,a,g,f,2g.,c6,a#,a.,16a,a,a,g,f,f,f,c,d,16d,d,d,g,f,e,d,c.,16c,c,c,a,g,d,e,2f"
+      - if:
+          condition:
+            lambda: 'return x == "Yankee Doodle";'
+          then:
+            - rtttl.play: "YankeeDo:d=16,o=6,b=50:d.,g,g,a,b,g,b,a,d,g,g,a,b,8g,f#,d,g,g,a,b,c7,b,a,g,f#,d,e,f#,8g,8g,e.,32f#.,e,d,e,f#,8g,d.,32e.,d,c,8b5,8d,e.,32f#.,e,d,e,f#,g,e,d,g,f#,a,8g,8g"
+      - if:
+          condition:
+            lambda: 'return x == "Amazing Grace";'
+          then:
+            - rtttl.play: "AmazGrc:d=16,o=5,b=80:8c,2f,a,g,f,2a,8a,8g,2f,4d,2c,8c,2f,a,g,f,2a,8g,8a,2c6"
+      - if:
+          condition:
+            lambda: 'return x == "Turkish March";'
+          then:
+            - rtttl.play: "TurkMarch:d=16,o=5,b=125:16d#,c#,c,c#,8e,8p,f#,e,d#,e,8g#,8p,a,g#,g,g#,d#6,c#6,c6,c#6,d#6,c#6,c6,c#6,4e6,8c#6,8e6,32b,32c#6,d#6,8c#6,8b,8c#6,32b,32c#6,d#6,8c#6,8b,8c#6,32b,32c#6,d#6,8c#6,8b,8a#,4g#,d#,32c#,c,c#,8e,8p,f#,e,d#,e,8g#,8p,a,g#,g,g#,d#6,c#6,c6,c#6,d#6,c#6,c6,c#6,4e6,8c#6,8e6,32b,32c#6,d#6,8c#6,8b,8c#6,32b,32c#6,d#6,8c#6,8b,8c#6,32b,32c#6,d#6,8c#6,8b,8a#,4g#"
+      - if:
+          condition:
+            lambda: 'return x == "Turkish March Low";'
+          then:
+            - rtttl.play: "TurkMarchLow:d=16,o=4,b=125:16d#,c#,c,c#,8e,8p,f#,e,d#,e,8g#,8p,a,g#,g,g#,d#5,c#5,c5,c#5,d#5,c#5,c5,c#5,4e5,8c#5,8e5,32b4,32c#5,d#5,8c#5,8b4,8c#5,32b4,32c#5,d#5,8c#5,8b4,8c#5,32b4,32c#5,d#5,8c#5,8b4,8a#,4g#,d#,32c#,c,c#,8e,8p,f#,e,d#,e,8g#,8p,a,g#,g,g#,d#5,c#5,c5,c#5,d#5,c#5,c5,c#5,4e5,8c#5,8e5,32b4,32c#5,d#5,8c#5,8b4,8c#5,32b4,32c#5,d#5,8c#5,8b4,8c#5,32b4,32c#5,d#5,8c#5,8b4,8a#,4g#"
+      - if:
+          condition:
+            lambda: 'return x == "Scotland";'
+          then:
+            - rtttl.play: "Scotland:d=4,o=5,b=250:c,32p,2f,f.,8g,a,f,a,c6,2f6,f6.,8f6,f6,c6,a,f,2a#,d6.,8a#,a,c6,a,f,2g,c6.,8d6,8c6.,16p,8c6,8d6,8c6,8b,8a,8g,2f,f.,8g,a,f,a,c6,2f6,f6.,8f6,f6,c6,a,f,2a#,d6.,8a#,a,c6,a,f,2g,f.,32p,8g,32p,2f,32p,f,32p,c6,32p,2f6,f6.,8f6,f6,32p,a,32p,f,32p,8a.,32p,2f6,f6.,8f6,f6,c6,a,f,2a#,d6.,8a#,a,c6,a,f,2g,f.,32p,8g,32p,1f"
+      - if:
+          condition:
+            lambda: 'return x == "Scotland Low";'
+          then:
+            - rtttl.play: "ScotlandLow:d=4,o=4,b=250:c,32p,2f,f.,8g,a,f,a,c5,2f5,f5.,8f5,f5,c5,a,f,2a#,d5.,8a#,a,c5,a,f,2g,c5.,8d5,8c5.,16p,8c5,8d5,8c5,8b4,8a,8g,2f,f.,8g,a,f,a,c5,2f5,f5.,8f5,f5,c5,a,f,2a#,d5.,8a#,a,c5,a,f,2g,f.,32p,8g,32p,2f,32p,f,32p,c5,32p,2f5,f5.,8f5,f5,32p,a,32p,f,32p,8a.,32p,2f5,f5.,8f5,f5,c5,a,f,2a#,d5.,8a#,a,c5,a,f,2g,f.,32p,8g,32p,1f"
+      - if:
+          condition:
+            lambda: 'return x == "Nokia";'
+          then:
+            - rtttl.play: "NokiaTun:d=4,o=5,b=225:8e6,8d6,f#,g#,8c#6,8b,d,e,8b,8a,c#,e,2a"
+      - if:
+          condition:
+            lambda: 'return x == "September";'
+          then:
+            - rtttl.play: "September:d=4,o=5,b=125:c#6,8d6,c#6,p,8c#6,8d6,8c#6,8b,a,b,c#6,8d6,c#6,p,8c#6,8d6,8c#6,8b,a,b,c#6,8d6,c#6,p,8c#6,8d6,8c#6,8b,a,8f#,8b,2a."
+      - if:
+          condition:
+            lambda: 'return x == "GB Anthem";'
+          then:
+            - rtttl.play: "GBAnthem:d=4,o=5,b=90:g,g,a,f#.,8g,a,b,b,c6,b.,8a,g,a,g,f#,g.,8a,8b,8c6,d6,d6,d6,d6.,8c6,b,c6,c6,c6,c6.,8b,a,b,8c6,8b,8a,8g,b.,8c6,d6,8e6,8c6,b,a,g."
+      - if:
+          condition:
+            lambda: 'return x == "Jingle Bells";'
+          then:
+            - rtttl.play: "JingleBells:d=4,o=5,b=170:b,b,b,p,b,b,b,p,b,d6,g.,8a,2b.,8p,c6,c6,c6.,8c6,c6,b,b,8b,8b,b,a,a,b,2a,2d6"
+      - if:
+          condition:
+            lambda: 'return x == "Star Wars";'
+          then:
+            - rtttl.play: "star_wars:d=16,o=5,b=100:4e,4e,4e,8c,p,g,4e,8c,p,g,4e,4p,4b,4b,4b,8c6,p,g,4d#,8c,p,g,4e,8p"
+      - if:
+          condition:
+            lambda: 'return x == "Mission Impossible";'
+          then:
+            - rtttl.play: "mission_imp:d=16,o=6,b=95:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,a#,g,2d,32p,a#,g,2c#,32p,a#,g,2c,a#5,8c,2p,32p,a#5,g5,2f#,32p,a#5,g5,2f,32p,a#5,g5,2e,d#,8d"
+      - if:
+          condition:
+            lambda: 'return x == "Mario";'
+          then:
+            - rtttl.play: "mario:d=4,o=5,b=100:16e6,16e6,32p,8e6,16c6,8e6,8g6,8p,8g,8p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,16p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16c7,16p,16c7,16c7,p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16d#6,8p,16d6,8p,16c6"
+      - if:
+          condition:
+            lambda: 'return x == "We Wish You A Merry Christmas";'
+          then:
+            - rtttl.play: "WWUAMerryChristmas:d=8,o=5,b=140:4d,4g,g,a,g,f#,4e,4c,4e,4a,a,b,a,g,4f#,4d,4f#,4b,b,c6,b,a,4g,4e,4d,4e,4a,4f#,2g"
+      - if:
+          condition:
+            lambda: 'return x == "Greensleeves";'
+          then:
+            - rtttl.play: "Greensleeves:d=4,o=5,b=140:g,2a#,c6,d6.,8d#6,d6,2c6,a,f.,8g,a,2a#,g,g.,8f,g,2a,f,2d,g,2a#,c6,d6.,8e6,d6,2c6,a,f.,8g,a,a#.,8a,g,f#.,8e,f#,2g"
+      - if:
+          condition:
+            lambda: 'return x == "Let It Snow";'
+          then:
+            - rtttl.play: "LetItSnow:d=8,o=5,b=120:c,c,c6,c6,4a#,4a,4g,4f,2c,c,16c,4g.,f,4g.,f,4e,2c,4d,d6,d6,4c6,4a#,4a,2g.,e6.,16d6,4c6,c6.,16a#,4a,a#.,16a,2f.,4c,c6,c6,4a#,4a,4g,4f,2c,c.,16c,4g.,f,4g.,f,4e,2c,4d,d6,d6,4c6,4a#,4a,2g.,e6.,16d6,4c6,c6.,16a#,4a,a.,16g,2f."
+      - if:
+          condition:
+            lambda: 'return x == "US Anthem";'
+          then:
+            - rtttl.play: "USAnthem:d=8,o=5,b=120:e.,d,4c,4e,4g,4c6.,p,e6.,d6,4c6,4e,4f#,4g.,p,4g,4e6.,d6,4c6,2b,a,4b,c6.,16p,4c6,4g,4e,32p,4c"
+      - if:
+          condition:
+            lambda: 'return x == "5th Symphony";'
+          then:
+            - rtttl.play: "5thSymph:d=4,o=5,b=180:8f,8f,8f,1c#,8p,8d#,8d#,8d#,1c,8p,8f,8f,8f,8c#,8f#,8f#,8f#,8f,8c#6,8c#6,8c#6,2a#,8p,8f,8f,8f,8c,8f#,8f#,8f#,8f,8d#6,8d#6,8d#6,1c6,8f6,8f6,8d#6,8c#6,8c#,8c#,8d#,8f,8f6,8f6,8d#6,8c#6,8c#,8c#,8d#,8f,8f6,8f6,8d#6,c#6,p,a#,p,2f6"
+api:
+  actions:
+    - action: rtttl
+      variables:
+        RTTTL: string
+      then:
+        - rtttl.play:
+            rtttl: !lambda 'return RTTTL;'
