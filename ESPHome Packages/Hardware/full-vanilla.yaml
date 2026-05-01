@@ -1,0 +1,61 @@
+esp32:
+  variant: ESP32
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: "3.1"
+
+button:
+  - platform: template
+    name: "Blink Status LED"
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        
+  - platform: template
+    name: "Pulse Status LED"
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.turn_on: 
+            id: status_led
+            brightness: 100%
+            transition_length: 150ms
+        - delay: 300ms
+        - light.turn_off: 
+            id: status_led
+            transition_length: 1.5s
+        
+output:
+  - platform: ledc # Output for the blue status LED
+    pin: GPIO2
+    id: status_led_out
+    inverted: false
+    frequency: "10kHz"
+    max_power: 0.5
+    
+binary_sensor:
+  - platform: gpio
+    id: boot_button
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Boot Button"
+
+light:
+  - platform: monochromatic # Blue LED status light config
+    name: "Status LED"
+    output: status_led_out
+    id: status_led
+    restore_mode:
+      RESTORE_DEFAULT_OFF
+    default_transition_length: 0s

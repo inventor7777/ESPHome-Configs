@@ -1,0 +1,92 @@
+esp32:
+  variant: ESP32
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: "3.1"
+  cpu_frequency: 240MHZ
+
+light: # Define a monochromatic, dimmable light for the backlight
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Backlight"
+    id: main_backlight
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - logger.log: "Backlight turning on"
+      - lvgl.page.show: main_page
+      - logger.log: "LVGL resumed and set to main_page"
+    on_turn_off: 
+      - logger.log: "Backlight turning off"
+      - lvgl.page.show: blank_page
+      - logger.log: "LVGL set to blank screen"  
+
+binary_sensor:
+  - platform: esp32_touch
+    name: "Touch"
+    pin: GPIO32
+    threshold: 1500
+    id: touch
+    filters:
+      - delayed_on_off: 20ms
+    on_click:       
+      - min_length: 15ms
+        max_length: 500ms 
+        then:
+          - logger.log: "Touched between 15ms and 500ms, executing next_page_fade"
+          - script.execute: next_page_fade
+                
+      - min_length: 500ms
+        max_length: 2000ms
+        then: # Long touch to toggle backlight
+          - logger.log: "Touched between 500ms and 2000ms, toggling backlight"
+          - light.toggle: main_backlight
+          - component.update: main_display
+          
+      - min_length: 2000ms
+        max_length: 5000ms
+        then: # Loooong touch to fully switch pages
+          - logger.log: "Touched between 2000ms and 5000ms, switching pages"
+          - lvgl.page.next:
+
+# This model of ESP32 always reports bogus values upwards of 100°C              
+sensor:
+  - id: !remove cpu_temp
+
+esp32_touch:
+  iir_filter: 10ms
+  low_voltage_reference: 0.6V
+  high_voltage_reference: 2.6V
+  #voltage_attenuation: 0.5V
+  setup_mode: false
+
+output: # Define a PWM output for the screen backlight
+  - platform: ledc
+    pin: GPIO25
+    inverted: True
+    id: backlight_output
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  interface: hardware
+  id: spihwd
+
+display:
+  - platform: mipi_spi
+    id: main_display
+    model: ST7789V
+    spi_id: spihwd
+    data_rate: 40MHz
+    dc_pin: GPIO02
+    reset_pin: GPIO04
+    spi_mode: MODE3
+    dimensions:
+      width: 240
+      height: 240
+      offset_height: 0
+      offset_width: 0
+    invert_colors: true
+    auto_clear_enabled: false
+    update_interval: never

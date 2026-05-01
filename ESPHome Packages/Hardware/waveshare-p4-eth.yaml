@@ -1,0 +1,51 @@
+esp32:
+  variant: esp32p4
+  engineering_sample: true
+  flash_size: 32MB
+  cpu_frequency: 400MHz
+  framework:
+    type: esp-idf
+    advanced:
+      enable_idf_experimental_features: true
+    
+psram:
+  mode: hex
+  speed: 200MHz
+    
+logger:
+  hardware_uart: UART0
+  
+ethernet:
+  type: IP101
+  mdc_pin: GPIO31
+  mdio_pin: GPIO52
+  power_pin: GPIO51
+  clk: 
+    mode: CLK_EXT_IN
+    pin: GPIO50
+  phy_addr: 1
+  
+sensor: # Numeric Sensors
+  - platform: internal_temperature
+    name: "CPU Temp"
+    unit_of_measurement: °C
+    id: cpu_temp
+  - platform: uptime
+    type: seconds
+    name: ESP Uptime
+    id: uptime_numeric
+    filters:
+      - multiply: 0.0000115741
+    unit_of_measurement: "d"
+
+text_sensor: # Text Sensors
+  - platform: ethernet_info
+    ip_address:
+      name: "IP Address"
+      icon: mdi:ip-outline
+      id: main_ip
+
+button: # Button Actions
+  - platform: restart
+    name: "Restart"
+    id: restart_button
