@@ -4,9 +4,44 @@ Here are some of my personal ESPHome projects. I've coded some from scratch, but
 # How To Use
 These files *do not include* the usual `logger:`, `api:`, etc because my intended purpose for these is to be drop in. 
 
-If you have an existing ESPHome config that works, just drop these in under the board defininition and *remove any duplicates.* If you want to start fresh with this YAML, click Create Device in ESPHome, select the **New Device Setup** option, select your board, and then paste one of these configs directly after the board definitions. (this usually keeps it nice and readable) This ensures that your encryption/api/logger/board is correct right away. Watch that indentation!!
+The best way to use them is by using [!include](https://esphome.io/components/packages/#local-packages). For example, follow the prompts in the ESPHome Device Builder to create an initial YAML, then add an include file referencing one of these files *(please move to your disk rather than using GitHub, as I may move the structure around!)*. Then, you can write the unique config for the particular device.
 
-Recently I, too, gave gone down the rabbit hole of `!include` so bear with me. I am trying to keep it from getting too out of hand for readability however. The folder `ESPHome Packages` holds these `!include` files.
+### Example of a simple node:
+```
+esphome:
+  name: esphome_node
+  friendly_name: ESPHome Node
+
+packages:
+  - !include ESPHomePackages/basics.yaml # This adds the restart button and basic universal sensors
+  - !include ESPHomePackages/ipv6.yaml # This package adds IPv6 and related sensors
+  - !include ESPHomePackages/Hardware/full-vanilla.yaml # This sets up the board specifics, such as board type, GPIOs of onboard LEDs and the BOOT button
+
+# Put your unique config here, e.g LVGL, sprinkler relays, buzzer, mmWave, BME680...
+  
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "YOUR_KEY_HERE"
+
+ota:
+  - platform: esphome
+    password: "YOUR_PASSWORD_HERE"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "ESPHome Node Fallback Hotspot"
+    password: !secret ap_password # You can hardcode it here but I recommend adding a simple ap_password line in your secrets.yaml
+
+captive_portal:
+```
 
 # Think of an improvement? Please share!
 Have an issue? Create an issue! I'd love to look into any issues and fix them.
