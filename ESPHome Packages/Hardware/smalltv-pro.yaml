@@ -2,9 +2,6 @@ esp32:
   variant: ESP32
   framework:
     type: esp-idf
-    advanced:
-      sram1_as_iram: true
-      minimum_chip_revision: "3.1"
   cpu_frequency: 240MHZ
 
 light: # Define a monochromatic, dimmable light for the backlight
@@ -50,15 +47,10 @@ binary_sensor:
           - logger.log: "Touched between 2000ms and 5000ms, switching pages"
           - lvgl.page.next:
 
-# This model of ESP32 always reports bogus values upwards of 100°C              
-sensor:
-  - id: !remove cpu_temp
-
-esp32_touch:
+esp32_touch: # Filter ghost touches
   iir_filter: 10ms
   low_voltage_reference: 0.6V
-  high_voltage_reference: 2.6V
-  #voltage_attenuation: 0.5V
+  high_voltage_reference: 2.6V 
   setup_mode: false
 
 output: # Define a PWM output for the screen backlight
