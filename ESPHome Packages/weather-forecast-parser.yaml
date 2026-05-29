@@ -1,0 +1,127 @@
+substitutions:
+  weather_forecast_entity: weather.tempest_cloud
+  weather_forecast_update_interval: 30min
+  weather_forecast_high_name: "Weather Forecast Today High"
+  weather_forecast_low_name: "Weather Forecast Today Low"
+  weather_forecast_low_high_name: "Weather Forecast Today Low High"
+  weather_forecast_temperature_unit: "°F"
+
+sensor:
+  - platform: template
+    id: weather_forecast_today_high
+    name: ${weather_forecast_high_name}
+    device_class: temperature
+    state_class: measurement
+    unit_of_measurement: ${weather_forecast_temperature_unit}
+    accuracy_decimals: 0
+    update_interval: never
+    internal: true
+
+  - platform: template
+    id: weather_forecast_today_low
+    name: ${weather_forecast_low_name}
+    device_class: temperature
+    state_class: measurement
+    unit_of_measurement: ${weather_forecast_temperature_unit}
+    accuracy_decimals: 0
+    update_interval: never
+    internal: true
+
+text_sensor:
+  - platform: template
+    id: weather_forecast_today_low_high
+    name: ${weather_forecast_low_high_name}
+    update_interval: never
+    internal: true
+
+script:
+  - id: update_weather_forecast
+    mode: restart
+    then:
+      - homeassistant.action:
+          action: weather.get_forecasts
+          data:
+            entity_id: ${weather_forecast_entity}
+            type: daily
+          capture_response: true
+          on_success:
+            - lambda: |-
+                JsonObjectConst root = response["response"];
+                if (root.isNull()) {
+                  id(weather_forecast_today_high).publish_state(NAN);
+                  id(weather_forecast_today_low).publish_state(NAN);
+                  id(weather_forecast_today_low_high).publish_state("-- / --");
+                  ESP_LOGW("weather_forecast", "Weather forecast response was empty.");
+                  return;
+                }
+
+                JsonArrayConst forecast = root["${weather_forecast_entity}"]["forecast"];
+                if (forecast.isNull() || forecast.size() == 0) {
+                  id(weather_forecast_today_high).publish_state(NAN);
+                  id(weather_forecast_today_low).publish_state(NAN);
+                  id(weather_forecast_today_low_high).publish_state("-- / --");
+                  ESP_LOGW("weather_forecast", "No forecast entries returned for ${weather_forecast_entity}.");
+                  return;
+                }
+
+                JsonObjectConst today = forecast[0];
+                if (today.isNull()) {
+                  id(weather_forecast_today_high).publish_state(NAN);
+                  id(weather_forecast_today_low).publish_state(NAN);
+                  id(weather_forecast_today_low_high).publish_state("-- / --");
+                  ESP_LOGW("weather_forecast", "First forecast entry was not an object.");
+                  return;
+                }
+
+                if (!today["temperature"].isNull()) {
+                  id(weather_forecast_today_high).publish_state(today["temperature"].as<float>());
+                } else {
+                  id(weather_forecast_today_high).publish_state(NAN);
+                  ESP_LOGW("weather_forecast", "Today's high temperature was missing.");
+                }
+
+                if (!today["templow"].isNull()) {
+                  id(weather_forecast_today_low).publish_state(today["templow"].as<float>());
+                } else {
+                  id(weather_forecast_today_low).publish_state(NAN);
+                  ESP_LOGW("weather_forecast", "Today's low temperature was missing.");
+                }
+
+                char buf[32];
+                if (isnan(id(weather_forecast_today_high).state) || isnan(id(weather_forecast_today_low).state)) {
+                  snprintf(buf, sizeof(buf), "-- / --");
+                } else {
+                  snprintf(
+                      buf,
+                      sizeof(buf),
+                      "%.0f° / %.0f°",
+                      id(weather_forecast_today_low).state,
+                      id(weather_forecast_today_high).state);
+                }
+                id(weather_forecast_today_low_high).publish_state(buf);
+
+                ESP_LOGI(
+                    "weather_forecast",
+                    "Updated today's forecast for ${weather_forecast_entity}: %s",
+                    id(weather_forecast_today_low_high).state.c_str());
+          on_error:
+            - logger.log:
+                level: WARN
+                format: "weather.get_forecasts failed for %s"
+                args:
+                  - '"${weather_forecast_entity}"'
+            - lambda: |-
+                id(weather_forecast_today_high).publish_state(NAN);
+                id(weather_forecast_today_low).publish_state(NAN);
+                id(weather_forecast_today_low_high).publish_state("-- / --");
+
+interval:
+  - interval: ${weather_forecast_update_interval}
+    then:
+      - script.execute: update_weather_forecast
+
+api:
+  on_client_connected:
+    then:
+      - delay: 2s
+      - script.execute: update_weather_forecast

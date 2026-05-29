@@ -10,6 +10,16 @@ esp32:
   framework:
     type: esp-idf
 
+packages:
+  rgb_led: !include
+    file: ../rgb_led.yaml
+    vars:
+      rgb_led_gpio: GPIO3
+      rgb_led_chipset: WS2812
+      rgb_led_rgb_order: grb
+      rgb_led_num_leds: "1"
+      rgb_led_rmt_symbols: "48"
+
 globals:
   - id: button_press_timestamp
     restore_value: no
@@ -436,30 +446,6 @@ sensor:
     i2c_id: bus_a
 
   
-light:
-  - platform: esp32_rmt_led_strip
-    id: rgb_led
-    name: "RGB LED"
-    pin: GPIO3
-    default_transition_length: 0s
-    chipset: WS2812
-    rmt_symbols: 48
-    num_leds: 1
-    rgb_order: grb
-    effects:
-      - pulse:
-          name: "Slow Pulse"
-          transition_length: 1000ms
-          update_interval: 1000ms
-          min_brightness: 50%
-          max_brightness: 100%
-      - pulse:
-          name: "Fast Pulse"
-          transition_length: 100ms
-          update_interval: 100ms
-          min_brightness: 50%
-          max_brightness: 100%
-
 button:
   - platform: ld2410
     factory_reset:

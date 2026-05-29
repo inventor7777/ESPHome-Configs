@@ -1,0 +1,60 @@
+esphome:
+  platformio_options:
+    build_flags:
+      - -ULV_USE_OBSERVER
+      - -DLV_USE_OBSERVER=1
+      - -DLV_USE_SYSMON=1
+      - -DLV_USE_PERF_MONITOR=1
+      - -DLV_DEF_REFR_PERIOD=10
+
+external_components:
+  - source: github://pr#16362
+    components: [lvgl]
+    refresh: 48h
+    
+lvgl:
+  pages:
+    - id: spinner_100_page
+      bg_color: 0x000000
+      pad_all: 0
+      widgets:
+        - spinner:
+            id: spinner_100
+            align: CENTER
+            width: 100
+            height: 100
+            spin_time: 1000ms
+            arc_length: 60deg
+            arc_color: 0x00FF00
+            indicator:
+              arc_color: 0xFFFFFF
+              
+    - id: spinner_200_page
+      bg_color: 0x000000
+      pad_all: 0
+      widgets:
+        - spinner:
+            id: spinner_200
+            align: CENTER
+            width: 200
+            height: 200
+            spin_time: 1000ms
+            arc_length: 60deg
+            arc_color: 0x00FF00
+            indicator:
+              arc_color: 0xFFFFFF
+              
+    - id: spinner_300_page
+      bg_color: 0x000000
+      pad_all: 0
+      widgets:
+        - spinner:
+            id: spinner_300
+            align: CENTER
+            width: 300
+            height: 300
+            spin_time: 1000ms
+            arc_length: 60deg
+            arc_color: 0x00FF00
+            indicator:
+              arc_color: 0xFFFFFF

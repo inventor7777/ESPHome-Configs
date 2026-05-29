@@ -2,6 +2,7 @@ script:
   - id: interaction
     mode: restart
     then:
+      - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
       - logger.log: "Resetting idle timer (interaction)"
@@ -24,6 +25,7 @@ script:
   - id: next_page
     mode: restart
     then:
+      - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
       - logger.log: "Resetting idle timer (next_page)"
@@ -55,6 +57,7 @@ script:
   - id: interaction_fade
     mode: restart
     then:
+      - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
       - logger.log: "Resetting idle timer (interaction_fade)"
@@ -81,6 +84,7 @@ script:
   - id: next_page_fade
     mode: restart
     then:
+      - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
       - logger.log: "Resetting idle timer (next_page_fade)"

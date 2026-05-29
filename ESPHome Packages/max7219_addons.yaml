@@ -1,0 +1,51 @@
+output:
+  - platform: template
+    id: max7219_light_output
+    type: float
+    write_action:
+      - lambda: |-
+          if (state <= 0.0f) {
+            id(pixel_display).turn_on_off(false);
+            return;
+          }
+          id(pixel_display).turn_on_off(true);
+          float curved = powf(state, 0.40f);
+
+          // Map only to 1-15
+          uint8_t intensity = 1 + (uint8_t) floorf(curved * 14.999f);
+          id(pixel_display).intensity(intensity);
+
+light:
+  - platform: monochromatic
+    name: "MAX7219"
+    id: max7219_light
+    output: max7219_light_output
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 1s
+
+switch:
+  - platform: template
+    name: "MAX7219 Invert"
+    icon: mdi:invert-colors
+    id: max7219_invert_switch
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: True
+    turn_on_action: 
+      then:
+        - max7219digit.invert_on: 
+    turn_off_action: 
+      then:
+        - max7219digit.invert_off: 
+
+  - platform: template
+    name: "MAX7219 Reverse"
+    icon: mdi:arrow-u-left-bottom
+    id: max7219_reverse_switch
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: True
+    turn_on_action: 
+      then:
+        - max7219digit.reverse_on: 
+    turn_off_action: 
+      then:
+        - max7219digit.reverse_off: 

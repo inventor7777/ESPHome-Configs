@@ -2,6 +2,9 @@ esp32:
   variant: ESP32
   framework:
     type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: "3.1"
   cpu_frequency: 240MHZ
 
 light: # Define a monochromatic, dimmable light for the backlight
@@ -12,6 +15,7 @@ light: # Define a monochromatic, dimmable light for the backlight
     restore_mode: RESTORE_DEFAULT_ON
     on_turn_on:
       - logger.log: "Backlight turning on"
+      - lvgl.resume:
       - lvgl.page.show: main_page
       - logger.log: "LVGL resumed and set to main_page"
     on_turn_off: 
@@ -23,7 +27,7 @@ binary_sensor:
   - platform: esp32_touch
     name: "Touch"
     pin: GPIO32
-    threshold: 1500
+    threshold: 1650
     id: touch
     filters:
       - delayed_on_off: 20ms
@@ -45,12 +49,17 @@ binary_sensor:
         max_length: 5000ms
         then: # Loooong touch to fully switch pages
           - logger.log: "Touched between 2000ms and 5000ms, switching pages"
+          - lvgl.resume:
           - lvgl.page.next:
 
-esp32_touch: # Filter ghost touches
+# This model of ESP32 always reports bogus values upwards of 100°C              
+sensor:
+  - id: !remove cpu_temp
+
+esp32_touch:
   iir_filter: 10ms
-  low_voltage_reference: 0.6V
-  high_voltage_reference: 2.6V 
+  low_voltage_reference: 0.7V
+  high_voltage_reference: 2.5V
   setup_mode: false
 
 output: # Define a PWM output for the screen backlight
@@ -77,8 +86,6 @@ display:
     dimensions:
       width: 240
       height: 240
-      offset_height: 0
-      offset_width: 0
     invert_colors: true
     auto_clear_enabled: false
     update_interval: never

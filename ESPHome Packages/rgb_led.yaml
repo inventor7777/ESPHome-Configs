@@ -1,0 +1,90 @@
+defaults:
+  rgb_led_name: "RGB LED"
+  rgb_led_gpio: GPIO48
+  rgb_led_chipset: ws2812
+  rgb_led_rgb_order: GRB
+  rgb_led_num_leds: "1"
+  rgb_led_rmt_symbols: "48"
+
+button:
+  - platform: template
+    name: "Blink ${rgb_led_name}"
+    id: blink_rgb_led
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.toggle: rgb_led
+        - delay: 250ms
+        - light.toggle: rgb_led
+        - delay: 250ms
+        - light.toggle: rgb_led
+        - delay: 250ms
+        - light.toggle: rgb_led
+
+  - platform: template
+    name: "Pulse ${rgb_led_name}"
+    id: pulse_rgb_led
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.turn_on:
+            id: rgb_led
+            brightness: 100%
+            red: 100%
+            green: 100%
+            blue: 100%
+            transition_length: 150ms
+        - delay: 300ms
+        - light.turn_off:
+            id: rgb_led
+            transition_length: 1.5s
+
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: ${rgb_led_chipset}
+    rmt_symbols: ${rgb_led_rmt_symbols}
+    rgb_order: ${rgb_led_rgb_order}
+    pin: ${rgb_led_gpio}
+    num_leds: ${rgb_led_num_leds}
+    default_transition_length: 0s
+    name: ${rgb_led_name}
+    id: rgb_led
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          transition_length: 1000ms
+          update_interval: 1000ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - pulse:
+          name: "Fast Pulse"
+          transition_length: 100ms
+          update_interval: 100ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - random:
+          name: Random
+      - flicker:
+          name: Flicker
+      - strobe:
+          name: Strobe
+      - lambda:
+          name: Rainbow
+          update_interval: 3s
+          lambda: |-
+            static int state = 0;
+            auto call = id(rgb_led).make_call();
+            call.set_transition_length(3000);
+            call.set_state(true);
+
+            if (state == 0) {
+              call.set_rgb(1.0, 0.0, 0.0);
+            } else if (state == 1) {
+              call.set_rgb(0.0, 1.0, 0.0);
+            } else if (state == 2) {
+              call.set_rgb(0.0, 0.0, 1.0);
+            }
+
+            call.perform();
+            state = (state + 1) % 3;

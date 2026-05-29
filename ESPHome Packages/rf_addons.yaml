@@ -6,6 +6,14 @@ remote_transmitter:
         - cc1101.begin_tx
     on_complete:
       then:
+        - cc1101.set_frequency:
+            value: !lambda |-
+              const auto op_freq = id(rf_operating_frequency).current_option();
+              if (op_freq == "315") return 315.0e6f;
+              if (op_freq == "433.92") return 433.92e6f;
+              if (op_freq == "868") return 868.0e6f;
+              if (op_freq == "915") return 915.0e6f;
+              return 304.25e6f;
         - if:
             condition:
               switch.is_on: cc1101_sleep
@@ -35,6 +43,30 @@ switch:
       - cc1101.begin_rx
 
 select:
+  - platform: template
+    name: "Operating Frequency"
+    id: rf_operating_frequency
+    icon: "mdi:radio-handheld"
+    optimistic: true
+    options:
+      - "304.25"
+      - "315"
+      - "433.92"
+      - "868"
+      - "915"
+    initial_option: "304.25"
+    set_action:
+      - logger.log:
+          format: "Operating frequency selected: %s MHz"
+          args: ['x.c_str()']
+      - cc1101.set_frequency:
+          value: !lambda |-
+            if (x == "304.25") return 304.25e6f;
+            if (x == "315") return 315.0e6f;
+            if (x == "433.92") return 433.92e6f;
+            if (x == "868") return 868.0e6f;
+            return 915.0e6f;
+
   - platform: template
     name: "RF Test Frequency"
     id: rf_test_frequency

@@ -14,15 +14,43 @@ sun:
 sensor:
   - platform: sun
     name: Sun Elevation
+    id: sun_elevation
     type: elevation
+    disabled_by_default: true
 
 text_sensor:
+  - platform: sun
+    name: Sun Next Sunrise
+    id: sun_next_sunrise
+    type: sunrise
+    format: "%H:%M"
+    disabled_by_default: true
+
+  - platform: sun
+    name: Sun Next Sunset
+    id: sun_next_sunset
+    type: sunset
+    format: "%H:%M"
+    disabled_by_default: true
+    
+  - platform: template
+    name: Sunrise Sunset Combined
+    id: sunrise_sunset
+    lambda: |-
+      return {
+        id(sun_next_sunrise).state + " / " +
+        id(sun_next_sunset).state
+      };
+    update_interval: 120s
+    disabled_by_default: true
+    
   - platform: template
     name: "ESP Time"
     id: esp_time_text
     icon: mdi:web-clock
     entity_category: diagnostic
-    update_interval: 120s
+    disabled_by_default: true
+    update_interval: 60s
     lambda: |-
       auto now = id(sntp_time).now();
       if (!now.is_valid()) return std::string("----");

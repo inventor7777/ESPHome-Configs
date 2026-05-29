@@ -1,0 +1,71 @@
+defaults:
+  status_led_name: "Status LED"
+  status_led_gpio: GPIO2
+  status_led_inverted: "false"
+  status_led_frequency: "10kHz"
+  status_led_max_power: "0.5"
+
+button:
+  - platform: template
+    name: "Blink ${status_led_name}"
+    id: blink_status_led
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+        - delay: 250ms
+        - light.toggle: status_led
+
+  - platform: template
+    name: "Pulse ${status_led_name}"
+    id: pulse_status_led
+    icon: mdi:led-variant-outline
+    on_press:
+      then:
+        - light.turn_on:
+            id: status_led
+            brightness: 100%
+            transition_length: 150ms
+        - delay: 300ms
+        - light.turn_off:
+            id: status_led
+            transition_length: 1.5s
+
+output:
+  - platform: ledc
+    pin: ${status_led_gpio}
+    id: status_led_out
+    inverted: ${status_led_inverted}
+    frequency: ${status_led_frequency}
+    max_power: ${status_led_max_power}
+
+light:
+  - platform: monochromatic
+    name: ${status_led_name}
+    output: status_led_out
+    id: status_led
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 0s
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          transition_length: 1000ms
+          update_interval: 1000ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - pulse:
+          name: "Fast Pulse"
+          transition_length: 100ms
+          update_interval: 100ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - random:
+          name: Random
+      - flicker:
+          name: Flicker
+      - strobe:
+          name: Strobe

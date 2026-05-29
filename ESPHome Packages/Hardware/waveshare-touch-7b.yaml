@@ -13,41 +13,35 @@ esp32:
 external_components:
   - source: github://pr#10071
     components: [waveshare_io_ch32v003]
-    refresh: 1h
+    refresh: 30min
 
 waveshare_io_ch32v003:
-  - id: waveshare_io_ch32v003_hub
-
-sensor: # ADC
-  - platform: waveshare_io_ch32v003
-    name: "ADC"
-    id: wave_adc
-    # Convert ADC value to voltage (10-bit ADC, 3.3V reference, and 3:1 voltage divider)
-    # value = adc * 3 * 3.3V / 1023.0
-    reference_voltage: 9.9  # so returned value is ADC * 9.9 / 1023.0
+  - id: wave_io
+    address: 0x24
+    i2c_id: main_i2c 
 
 output:
   - platform: waveshare_io_ch32v003
     id: main_backlight_output
     inverted: true
     zero_means_zero: true
-    min_power: 0.03
-    max_power: 1.0
+    safe_pwm_levels:  # 0...255
+      min_value: 0    # Default: 0
+      max_value: 247  # Default: 247. Safe max for ESP32S3-Touch-LCD-7B circuitry
 
   - platform: ledc
     pin: GPIO6
     id: buzzer
 
 switch:
-  - platform: gpio
-    internal: True
-    id: exio2
-    restore_mode: ALWAYS_ON
-    pin: 
-      waveshare_io_ch32v003: waveshare_io_ch32v003_hub
-      number: 2
-      mode: 
-        output: true
+ - platform: gpio
+   id: exio2
+   restore_mode: RESTORE_DEFAULT_ON
+   pin: 
+     waveshare_io_ch32v003: wave_io
+     number: 2
+     mode: 
+       output: true
 
 light:
   - platform: monochromatic
@@ -58,38 +52,46 @@ light:
     default_transition_length: 750ms
     on_turn_on: 
       then:
-        #- lvgl.resume: 
+        - lvgl.page.show: main_page
         - switch.turn_on: exio2
-        #- logger.log: "LVGL Resumed, exio2 turned on"
+        - logger.log: "LVGL resumed, exio2 turned on"
     on_turn_off: 
       then:
-        #- lvgl.pause: 
-            #show_snow: true
+        - lvgl.page.show: blank_page
         - switch.turn_off: exio2
-        #- logger.log: "LVGL Paused, Antiburn Active"   
+        - logger.log: "LVGL paused and set to blank screen"   
 
 i2c:
-  - id: bus_a
+  - id: main_i2c
     sda: 8
     scl: 9
   
 psram:
   mode: octal
   speed: 80MHz
+  
+sensor: # ADC
+  - platform: waveshare_io_ch32v003
+    name: "ADC"
+    id: wave_adc
+    # Convert ADC value to voltage (10-bit ADC, 3.3V reference, and 3:1 voltage divider)
+    # value = adc * 3 * 3.3V / 1023.0
+    reference_voltage: 9.9  # so returned value is ADC * 9.9 / 1023.0
 
 touchscreen:
   platform: gt911
   id: gt911_touchscreen
   display: main_display
-  i2c_id: bus_a
+  i2c_id: main_i2c
   interrupt_pin: GPIO4
   reset_pin:
-    waveshare_io_ch32v003: waveshare_io_ch32v003_hub
+    waveshare_io_ch32v003: wave_io
     number: 1
     mode: OUTPUT
 
 display:
-  - platform: rpi_dpi_rgb
+  - platform: mipi_rgb
+    model: RPI
     id: main_display
     update_interval: never
     auto_clear_enabled: false
@@ -109,11 +111,12 @@ display:
     pclk_pin: 7
     pclk_inverted: true
     reset_pin:
-      waveshare_io_ch32v003: waveshare_io_ch32v003_hub
+      waveshare_io_ch32v003: wave_io
       number: 3
     hsync_back_porch: 152
     hsync_front_porch: 48
     hsync_pulse_width: 162
+
     vsync_back_porch: 13
     vsync_front_porch: 3
     vsync_pulse_width: 45

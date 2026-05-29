@@ -1,6 +1,17 @@
+substitutions:
+  color_black: "0x000000"
+  color_white: "0xFFFFFF"
+  color_light_gray: "0xB0BEC5"
+  color_blue: "0x0082FF"
+  color_green: "0x4CAF50"
+  color_bright_green: "0x00FF00"
+  color_red: "0xFF0000"
+  color_amber: "0xFFC300"
+  color_cyan: "0x00FFFF"
+
 esphome:
   on_boot:
-    - priority: 600
+    - priority: 300
       then:
         - delay: 1s
         - if:
@@ -10,6 +21,29 @@ esphome:
               - lvgl.page.show: main_page
             else:
               - lvgl.page.show: blank_page
+        - delay: 1s
+        - script.execute: # still testing
+            id: apply_display_rotation
+            rotation: !lambda "return id(display_rotation).current_option();"
+
+select:
+  - platform: template
+    name: "Display Rotation"
+    id: display_rotation
+    icon: "mdi:screen-rotation"
+    entity_category: CONFIG
+    optimistic: true
+    restore_value: true
+    initial_option: "0"
+    options:
+      - "0"
+      - "90"
+      - "180"
+      - "270"
+    set_action:
+      - script.execute:
+          id: apply_display_rotation
+          rotation: !lambda "return x;"
 
 button: # LVGL Button Actions
   - platform: template  
@@ -59,11 +93,13 @@ text_sensor:
     update_interval: never
     
 interval:
-  - interval: 5min
+  - interval: 30min
     then:
+      - component.update: main_lvgl
       - script.execute: update_lvgl_page
-    
+      
 lvgl:
+  id: main_lvgl
   on_draw_end:
     - script.execute: update_lvgl_page
   on_idle:
@@ -98,7 +134,7 @@ lvgl:
   pages: # Add a blank page
     - id: blank_page
       skip: true
-      bg_color: 0x000000
+      bg_color: ${color_black}
       
 script:
   - id: update_lvgl_page
@@ -130,3 +166,31 @@ script:
                         - text_sensor.template.publish:
                             id: current_lvgl_page
                             state: "Unknown"
+                            
+  - id: apply_display_rotation
+    parameters:
+      rotation: std::string
+    then:
+      - if:
+          condition:
+            lambda: 'return rotation == "90";'
+          then:
+            - lvgl.display.set_rotation:
+                rotation: 90
+          else:
+            - if:
+                condition:
+                  lambda: 'return rotation == "180";'
+                then:
+                  - lvgl.display.set_rotation:
+                      rotation: 180
+                else:
+                  - if:
+                      condition:
+                        lambda: 'return rotation == "270";'
+                      then:
+                        - lvgl.display.set_rotation:
+                            rotation: 270
+                      else:
+                        - lvgl.display.set_rotation:
+                            rotation: 0
