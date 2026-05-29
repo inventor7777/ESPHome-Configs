@@ -1,6 +1,5 @@
 # ESPHome-Configs
-Here are some of my personal ESPHome projects. I've coded some from scratch, but some configs I've gotten online and then refactored to my liking. I've tried to keep them simple and mostly lambda free for simple stuff.
-
+Here are some of my personal ESPHome projects. I've coded some from scratch, but some configs I've gotten online and then refactored to my liking. I've tried to keep them simple and mostly lambda free for simple stuff. It's a mirror of what I use.
 # How To Use
 These files *do not include* the usual `logger:`, `api:`, etc because my intended purpose for these is to be drop in. 
 
@@ -45,6 +44,6 @@ captive_portal:
 
 # Think of an improvement? Please share!
 Have an issue? Create an issue! I'd love to look into any issues and fix them.
-Also, I am always adding new functionality and making the code even simpler. If you improve my code in any way, or implemement it into a cool project, please share *(if you'd like)*! PRs welcome. 
+Also, I am always adding new functionality and making the code even simpler. If you improve my code in any way, or implemement it into a cool project, please share *(if you'd like)*! PRs welcome, but do keep in mind that these are what I use personally and I will not merge if it breaks my workflow :)
 
 *(Note: I don't really care for a ton of lambda and complexity so if your improvement is adding a bunch of really complex lambdas and automations you might make your own repo for those :D)*
