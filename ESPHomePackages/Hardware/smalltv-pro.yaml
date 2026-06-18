@@ -74,18 +74,28 @@ spi:
   interface: hardware
   id: spihwd
 
+external_components:
+  - source: github://pr#16722
+    components: [mipi, mipi_dsi, mipi_rgb, mipi_spi]
+    refresh: 1h
+
 display:
   - platform: mipi_spi
+    model: GEEKMAGIC-SMALLTV-PRO
     id: main_display
-    model: ST7789V
-    spi_id: spihwd
-    data_rate: 40MHz
-    dc_pin: GPIO02
-    reset_pin: GPIO04
-    spi_mode: MODE3
-    dimensions:
-      width: 240
-      height: 240
-    invert_colors: true
-    auto_clear_enabled: false
-    update_interval: never
+
+# display:
+#   - platform: mipi_spi
+#     id: main_display
+#     model: ST7789V
+#     spi_id: spihwd
+#     data_rate: 40MHz
+#     dc_pin: GPIO02
+#     reset_pin: GPIO04
+#     spi_mode: MODE3
+#     dimensions:
+#       width: 240
+#       height: 240
+#     invert_colors: true
+#     auto_clear_enabled: false
+#     update_interval: never

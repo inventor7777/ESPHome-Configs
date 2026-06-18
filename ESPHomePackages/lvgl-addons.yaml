@@ -8,6 +8,8 @@ substitutions:
   color_red: "0xFF0000"
   color_amber: "0xFFC300"
   color_cyan: "0x00FFFF"
+  glyphs_max: " /:1234567890.°?%-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZµ³"
+  glyphs_min: " 1234567890.°FfCcpPmMnaN?%-"
 
 esphome:
   on_boot:
