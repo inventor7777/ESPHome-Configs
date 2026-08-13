@@ -54,6 +54,6 @@ text_sensor:
     lambda: |-
       auto now = id(sntp_time).now();
       if (!now.is_valid()) return std::string("----");
-      char buf[6];
+      char buf[8];
       snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
       return std::string(buf);

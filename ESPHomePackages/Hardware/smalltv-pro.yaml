@@ -14,14 +14,26 @@ light: # Define a monochromatic, dimmable light for the backlight
     id: main_backlight
     restore_mode: RESTORE_DEFAULT_ON
     on_turn_on:
-      - logger.log: "Backlight turning on"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Backlight turning on"
       - lvgl.resume:
       - lvgl.page.show: main_page
-      - logger.log: "LVGL resumed and set to main_page"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "LVGL resumed and set to main_page"
     on_turn_off: 
-      - logger.log: "Backlight turning off"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Backlight turning off"
       - lvgl.page.show: blank_page
-      - logger.log: "LVGL set to blank screen"  
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "LVGL set to blank screen"
 
 binary_sensor:
   - platform: esp32_touch
@@ -35,20 +47,29 @@ binary_sensor:
       - min_length: 15ms
         max_length: 500ms 
         then:
-          - logger.log: "Touched between 15ms and 500ms, executing next_page_fade"
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "Touched between 15ms and 500ms, executing next_page_fade"
           - script.execute: next_page_fade
                 
       - min_length: 500ms
         max_length: 2000ms
         then: # Long touch to toggle backlight
-          - logger.log: "Touched between 500ms and 2000ms, toggling backlight"
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "Touched between 500ms and 2000ms, toggling backlight"
           - light.toggle: main_backlight
           - component.update: main_display
           
       - min_length: 2000ms
         max_length: 5000ms
         then: # Loooong touch to fully switch pages
-          - logger.log: "Touched between 2000ms and 5000ms, switching pages"
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "Touched between 2000ms and 5000ms, switching pages"
           - lvgl.resume:
           - lvgl.page.next:
 

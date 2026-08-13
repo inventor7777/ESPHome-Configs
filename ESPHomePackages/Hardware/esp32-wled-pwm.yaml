@@ -1,0 +1,46 @@
+# WeGoIOT / Gledopto five-channel analog WLED controller.
+# Pin assignments verified from the WLED 0.16 Pin Info/export supplied with this config.
+# WLED may label GPIO12 as a relay, but this board has no GPIO12-controlled
+# power relay.
+
+esp32:
+  variant: ESP32
+  framework:
+    type: esp-idf
+    
+output:
+  - platform: ledc
+    id: pwm_1
+    pin: GPIO19
+    frequency: 19531 Hz
+
+  - platform: ledc
+    id: pwm_2
+    pin: GPIO18
+    frequency: 19531 Hz
+    
+  - platform: ledc
+    id: pwm_3
+    pin: GPIO17
+    frequency: 19531 Hz
+
+  - platform: ledc
+    id: pwm_4
+    pin: GPIO16
+    frequency: 19531 Hz
+
+  - platform: ledc
+    id: pwm_5
+    pin: GPIO4
+    frequency: 19531 Hz
+    
+binary_sensor:
+  - platform: gpio
+    id: function_button
+    name: Function Button
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 20ms

@@ -5,13 +5,19 @@ script:
       - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
-      - logger.log: "Resetting idle timer (interaction)"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Resetting idle timer (interaction)"
       - if:
           condition:
             light.is_off: main_backlight
           then:
             - light.turn_on: main_backlight
-            - logger.log: "Backlight was off, turning on."
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Backlight was off, turning on."
           else:
             - if:
                 condition:
@@ -20,7 +26,10 @@ script:
                     - lvgl.page.is_showing: second_page
                 then:
                   - lvgl.page.show: main_page
-                  - logger.log: "Second page was showing, switched to main."
+                  - logger.log:
+                      level: INFO
+                      tag: user
+                      format: "Second page was showing, switched to main."
 
   - id: next_page
     mode: restart
@@ -28,13 +37,19 @@ script:
       - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
-      - logger.log: "Resetting idle timer (next_page)"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Resetting idle timer (next_page)"
       - if:
           condition:
             light.is_off: main_backlight
           then:
             - light.turn_on: main_backlight
-            - logger.log: "Backlight was off, turning on."
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Backlight was off, turning on."
           else:
             - if:
                 condition:
@@ -43,7 +58,10 @@ script:
                     - lvgl.page.is_showing: main_page
                 then:
                   - lvgl.page.show: second_page
-                  - logger.log: "Main page was showing, switched to second."
+                  - logger.log:
+                      level: INFO
+                      tag: user
+                      format: "Main page was showing, switched to second."
                 else:
                   - if:
                       condition:
@@ -52,7 +70,10 @@ script:
                           - lvgl.page.is_showing: second_page
                       then:
                         - lvgl.page.show: main_page
-                        - logger.log: "Second page was showing, switched to main."
+                        - logger.log:
+                            level: INFO
+                            tag: user
+                            format: "Second page was showing, switched to main."
 
   - id: interaction_fade
     mode: restart
@@ -60,13 +81,19 @@ script:
       - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
-      - logger.log: "Resetting idle timer (interaction_fade)"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Resetting idle timer (interaction_fade)"
       - if:
           condition:
             light.is_off: main_backlight
           then:
             - light.turn_on: main_backlight
-            - logger.log: "Backlight was off, turning on."
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Backlight was off, turning on."
           else:
             - if:
                 condition:
@@ -79,7 +106,10 @@ script:
                       id: main_page
                       animation: FADE_OUT
                       time: 1500ms
-                  - logger.log: "Second page was showing, switched to main (with fade)."
+                  - logger.log:
+                      level: INFO
+                      tag: user
+                      format: "Second page was showing, switched to main (with fade)."
                   
   - id: next_page_fade
     mode: restart
@@ -87,13 +117,19 @@ script:
       - lvgl.resume:
       - lambda: |-
           lv_disp_trig_activity(NULL);
-      - logger.log: "Resetting idle timer (next_page_fade)"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Resetting idle timer (next_page_fade)"
       - if:
           condition:
             light.is_off: main_backlight
           then:
             - light.turn_on: main_backlight
-            - logger.log: "Backlight was off, turning on"
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Backlight was off, turning on"
           else:
             - if:
                 condition:
@@ -102,7 +138,10 @@ script:
                     - lvgl.page.is_showing: main_page
                 then:
                   - lvgl.page.show: second_page
-                  - logger.log: "Main page was showing, switched to second."
+                  - logger.log:
+                      level: INFO
+                      tag: user
+                      format: "Main page was showing, switched to second."
                 else:
                   - if:
                       condition:
@@ -114,4 +153,7 @@ script:
                             id: main_page
                             animation: FADE_OUT
                             time: 1500ms
-                        - logger.log: "Second page was showing, switched to main (with fade out)."
+                        - logger.log:
+                            level: INFO
+                            tag: user
+                            format: "Second page was showing, switched to main (with fade out)."

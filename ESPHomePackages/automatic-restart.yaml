@@ -5,4 +5,9 @@ time:
         minutes: 30
         seconds: 0
         then:
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "Time is 03:30, performing automatic restart"
+          - delay: 500ms
           - button.press: restart_button

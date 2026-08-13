@@ -5,3 +5,7 @@ udp:
 syslog:
   udp_id: syslog_udp
   time_id: sntp_time
+  
+logger:
+  logs: 
+    internal_temperature.esp32: WARN

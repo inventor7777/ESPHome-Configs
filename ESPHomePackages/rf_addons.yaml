@@ -2,7 +2,10 @@ remote_transmitter:
   - id: !extend rf_transmitter
     on_transmit:
       then:
-        - logger.log: "Transmitting; starting TX on CC1101"
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "Transmitting; starting TX on CC1101"
         - cc1101.begin_tx
     on_complete:
       then:
@@ -18,10 +21,16 @@ remote_transmitter:
             condition:
               switch.is_on: cc1101_sleep
             then:
-              - logger.log: "Transmit complete, sleep switch is on therefore putting CC1101 to sleep"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "Transmit complete, sleep switch is on therefore putting CC1101 to sleep"
               - cc1101.set_idle
             else:
-              - logger.log: "Transmit complete, starting RX on CC1101"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "Transmit complete, starting RX on CC1101"
               - cc1101.begin_rx
         - button.press: blink_status_led
         - select.set:
@@ -36,10 +45,16 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     turn_on_action:
-      - logger.log: "Sleep switch turned on, putting CC1101 to sleep"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Sleep switch turned on, putting CC1101 to sleep"
       - cc1101.set_idle
     turn_off_action:
-      - logger.log: "Sleep switch turned off, starting RX on CC1101"
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Sleep switch turned off, starting RX on CC1101"
       - cc1101.begin_rx
 
 select:
@@ -57,6 +72,8 @@ select:
     initial_option: "304.25"
     set_action:
       - logger.log:
+          level: INFO
+          tag: user
           format: "Operating frequency selected: %s MHz"
           args: ['x.c_str()']
       - cc1101.set_frequency:

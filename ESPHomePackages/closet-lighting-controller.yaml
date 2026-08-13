@@ -1,0 +1,177 @@
+globals:
+  - id: tempest_night_mode_cache
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+  - id: cct_light_on_minutes
+    type: uint16_t
+    initial_value: '0'
+
+sensor:
+  - platform: template
+    id: cct_light_on_time
+    name: Light On Time
+    icon: mdi:clock-start
+    unit_of_measurement: min
+    accuracy_decimals: 0
+    update_interval: never
+
+number:
+  - platform: template
+    id: target_night_brightness
+    name: Target Night Brightness
+    icon: "mdi:brightness-4"
+    unit_of_measurement: "%"
+    entity_category: config
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 75
+    restore_value: true
+    optimistic: true
+
+  - platform: template
+    id: target_day_brightness
+    name: Target Day Brightness
+    icon: "mdi:brightness-7"
+    unit_of_measurement: "%"
+    entity_category: config
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 100
+    restore_value: true
+    optimistic: true
+
+  - platform: template
+    id: target_night_color_temp
+    name: Target Night Color Temp
+    icon: "mdi:moon-waning-crescent"
+    unit_of_measurement: K
+    entity_category: config
+    min_value: 2700
+    max_value: 6500
+    step: 50
+    initial_value: 3100
+    restore_value: true
+    optimistic: true
+
+  - platform: template
+    id: target_day_color_temp
+    name: Target Day Color Temp
+    icon: "mdi:weather-sunny"
+    unit_of_measurement: K
+    entity_category: config
+    min_value: 2700
+    max_value: 6500
+    step: 50
+    initial_value: 3200
+    restore_value: true
+    optimistic: true
+
+light:
+  - platform: cwww
+    id: cct_light
+    name: CCT Light
+    cold_white: ${cw_output}
+    warm_white: ${ww_output}
+    cold_white_color_temperature: 6500 K
+    warm_white_color_temperature: 2700 K
+    constant_brightness: false
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 1000ms
+    on_turn_on:
+      - lambda: 'id(cct_light_on_minutes) = 0;'
+      - sensor.template.publish:
+          id: cct_light_on_time
+          state: !lambda 'return id(cct_light_on_minutes);'
+    on_turn_off:
+      - lambda: 'id(cct_light_on_minutes) = 0;'
+      - sensor.template.publish:
+          id: cct_light_on_time
+          state: !lambda 'return id(cct_light_on_minutes);'
+
+interval:
+  - interval: 1min
+    then:
+      - if:
+          condition:
+            and:
+              - binary_sensor.is_off: door
+              - light.is_on: cct_light
+          then:
+            - light.turn_off: cct_light
+      - if:
+          condition:
+            light.is_on: cct_light
+          then:
+            - lambda: 'id(cct_light_on_minutes)++;'
+            - sensor.template.publish:
+                id: cct_light_on_time
+                state: !lambda 'return id(cct_light_on_minutes);'
+            - if:
+                condition:
+                  lambda: 'return id(cct_light_on_minutes) >= 120;'
+                then:
+                  - light.turn_off: cct_light
+
+binary_sensor:
+  - platform: homeassistant
+    entity_id: binary_sensor.exterior_tempest_night_lux
+    id: tempest_night_mode_source
+    internal: true
+    trigger_on_initial_state: true
+    on_state:
+      - lambda: |-
+          id(tempest_night_mode_cache) = x;
+
+  - platform: gpio
+    id: door
+    name: Door
+    device_class: door
+    trigger_on_initial_state: true
+    pin:
+      number: GPIO33
+      mode: INPUT_PULLUP
+    filters:
+      - delayed_on_off: 30ms
+    on_press:
+      - if:
+          condition:
+            lambda: 'return id(tempest_night_mode_cache);'
+          then:
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Door opened in Night mode, setting light to night presets"
+            - light.turn_on:
+                id: cct_light
+                brightness: !lambda 'return id(target_night_brightness).state / 100.0f;'
+                # ESPHome light actions use mireds internally; the user-facing
+                # preset is intentionally kept in kelvin.
+                color_temperature: !lambda 'return 1000000.0f / id(target_night_color_temp).state;'
+          else:
+            - light.turn_on:
+                id: cct_light
+                brightness: !lambda 'return id(target_day_brightness).state / 100.0f;'
+                color_temperature: !lambda 'return 1000000.0f / id(target_day_color_temp).state;'
+            - logger.log:
+                level: INFO
+                tag: user
+                format: "Door opened in Daytime mode, setting light to daytime presets"
+                
+    on_release:
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Door closed, turning off light"
+      - light.turn_off: cct_light
+
+  - id: !extend function_button
+    on_press:
+      - logger.log:
+          level: INFO
+          tag: user
+          format: "Function button pressed, toggling light"
+      - light.toggle: cct_light

@@ -113,9 +113,15 @@ lvgl:
             then:
               - lvgl.page.show: 
                   id: main_page
-              - logger.log: "LVGL has been idle for 15 seconds, switching to main page"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "LVGL has been idle for 15 seconds, switching to main page"
             else:
-              - logger.log: "LVGL has been idle for 15 seconds, but backlight is off so page switch was skipped"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "LVGL has been idle for 15 seconds, but backlight is off so page switch was skipped"
     - timeout: 60s
       then:
         - if:
@@ -130,9 +136,15 @@ lvgl:
                 return (minutes >= (22 * 60)) || (minutes < (4 * 60 + 30));
             then:
               - light.turn_off: main_backlight
-              - logger.log: "Time appears to be between 22:00 & 04:30, turning off backlight"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "Time appears to be between 22:00 & 04:30, turning off backlight"
             else:
-              - logger.log: "Time appears to not be between 22:00 & 04:30, keeping backlight on"
+              - logger.log:
+                  level: INFO
+                  tag: user
+                  format: "Time appears to not be between 22:00 & 04:30, keeping backlight on"
   pages: # Add a blank page
     - id: blank_page
       skip: true

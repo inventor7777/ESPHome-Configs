@@ -2,10 +2,16 @@ remote_transmitter:
   - id: !extend ir_transmitter
     on_transmit:
       then:
-        - logger.log: "Starting IR transmit"
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "Starting IR transmit"
     on_complete:
       then:
-        - logger.log: "IR transmit complete"
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "IR transmit complete"
         - button.press: blink_status_led
             
 api:

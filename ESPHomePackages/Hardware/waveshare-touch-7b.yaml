@@ -54,12 +54,18 @@ light:
       then:
         - lvgl.page.show: main_page
         - switch.turn_on: exio2
-        - logger.log: "LVGL resumed, exio2 turned on"
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "LVGL resumed, exio2 turned on"
     on_turn_off: 
       then:
         - lvgl.page.show: blank_page
         - switch.turn_off: exio2
-        - logger.log: "LVGL paused and set to blank screen"   
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "LVGL paused and set to blank screen"
 
 i2c:
   - id: main_i2c

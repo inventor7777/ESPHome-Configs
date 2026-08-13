@@ -45,6 +45,8 @@ select:
     initial_option: "Normal"
     set_action:
       - logger.log:
+          level: INFO
+          tag: user
           format: "Benchmark mode set to %s"
           args: ["x.c_str()"]
 

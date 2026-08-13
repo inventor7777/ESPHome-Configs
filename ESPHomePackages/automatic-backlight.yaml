@@ -7,6 +7,10 @@ time:
         days_of_week: SUN
         then:
         - light.turn_off: main_backlight
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "Turning off backlight for Sunday morning"
 
       - hours: 12
         minutes: 15
@@ -14,12 +18,19 @@ time:
         days_of_week: SUN
         then:
           - light.turn_on: main_backlight
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "It is now Sunday afternoon, turning backlight back on"
           
       - hours: 0
         minutes: 0
         seconds: 0
         then:
-        - logger.log: "Activating antiburn for 30 minutes"
+        - logger.log:
+            level: INFO
+            tag: user
+            format: "Activating antiburn for 30 minutes"
         - lvgl.pause:
             show_snow: true
 
@@ -27,6 +38,9 @@ time:
         minutes: 30
         seconds: 0
         then:
-          - logger.log: "Antiburn session complete, pausing LVGL"
+          - logger.log:
+              level: INFO
+              tag: user
+              format: "Antiburn session complete, pausing LVGL"
           - lvgl.page.show: blank_page
           - lvgl.pause:

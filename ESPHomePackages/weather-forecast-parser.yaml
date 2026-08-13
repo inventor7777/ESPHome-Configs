@@ -107,6 +107,7 @@ script:
           on_error:
             - logger.log:
                 level: WARN
+                tag: user
                 format: "weather.get_forecasts failed for %s"
                 args:
                   - '"${weather_forecast_entity}"'
