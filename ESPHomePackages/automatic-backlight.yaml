@@ -17,11 +17,20 @@ time:
         seconds: 0
         days_of_week: SUN
         then:
-          - light.turn_on: main_backlight
-          - logger.log:
-              level: INFO
-              tag: user
-              format: "It is now Sunday afternoon, turning backlight back on"
+          - if:
+              condition:
+                binary_sensor.is_on: vacation_mode
+              then:
+                - logger.log:
+                    level: INFO
+                    tag: user
+                    format: "Sunday afternoon: vacation mode is on; leaving backlight off"
+              else:
+                - light.turn_on: main_backlight
+                - logger.log:
+                    level: INFO
+                    tag: user
+                    format: "Sunday afternoon: vacation mode is off or unavailable; turning backlight on"
           
       - hours: 0
         minutes: 0

@@ -5,7 +5,8 @@ udp:
 syslog:
   udp_id: syslog_udp
   time_id: sntp_time
-  
+
+# Stops constant internal temperature spam  
 logger:
   logs: 
     internal_temperature.esp32: WARN

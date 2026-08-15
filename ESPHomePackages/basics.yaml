@@ -22,6 +22,12 @@ text_sensor: # Text Sensors
       icon: mdi:ip-outline
       id: main_ip
 
+binary_sensor:
+  - platform: homeassistant
+    id: vacation_mode
+    entity_id: input_boolean.vacation_mode
+    internal: true
+
 button: # Button Actions
   - platform: restart
     name: "Restart"

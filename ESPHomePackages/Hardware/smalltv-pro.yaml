@@ -95,10 +95,10 @@ spi:
   interface: hardware
   id: spihwd
 
-external_components:
-  - source: github://pr#16722
-    components: [mipi, mipi_dsi, mipi_rgb, mipi_spi]
-    refresh: 1h
+#external_components:
+  #- source: github://pr#16722
+    #components: [mipi, mipi_dsi, mipi_rgb, mipi_spi]
+    #refresh: 1h
 
 display:
   - platform: mipi_spi

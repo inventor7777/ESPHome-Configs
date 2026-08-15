@@ -10,11 +10,6 @@ esp32:
   flash_size: 16MB
   cpu_frequency: 240MHZ
 
-external_components:
-  - source: github://pr#10071
-    components: [waveshare_io_ch32v003]
-    refresh: 30min
-
 waveshare_io_ch32v003:
   - id: wave_io
     address: 0x24
