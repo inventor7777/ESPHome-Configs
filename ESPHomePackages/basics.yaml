@@ -1,3 +1,9 @@
+defaults:
+  network_mode: "wifi"
+
+debug:
+  update_interval: 15s
+
 sensor: # Numeric Sensors
   - platform: wifi_signal
     name: "WiFi Signal"
@@ -14,13 +20,33 @@ sensor: # Numeric Sensors
       - multiply: 0.0000115741
     unit_of_measurement: "d"
     accuracy_decimals: 4
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: diagnostic
+    min_free:
+      name: "Heap Min Free"
+      entity_category: diagnostic
+    block:
+      name: "Heap Max Block"
+      entity_category: diagnostic
+    fragmentation:
+      name: "Heap Fragmentation"
+      entity_category: diagnostic
+    loop_time:
+      name: "Loop Time"
+      entity_category: diagnostic
 
 text_sensor: # Text Sensors
-  - platform: wifi_info
+  - platform: ${network_mode}_info
     ip_address:
       name: "IP Address"
       icon: mdi:ip-outline
       id: main_ip
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: diagnostic
 
 binary_sensor:
   - platform: homeassistant

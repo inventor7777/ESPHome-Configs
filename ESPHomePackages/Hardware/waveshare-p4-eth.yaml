@@ -25,6 +25,9 @@ ethernet:
     pin: GPIO50
   phy_addr: 1
   
+debug:
+  update_interval: 15s
+  
 sensor: # Numeric Sensors
   - platform: internal_temperature
     name: "CPU Temp"
@@ -37,6 +40,19 @@ sensor: # Numeric Sensors
     filters:
       - multiply: 0.0000115741
     unit_of_measurement: "d"
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: diagnostic
+    min_free:
+      name: "Heap Min Free"
+      entity_category: diagnostic
+    fragmentation:
+      name: "Heap Fragmentation"
+      entity_category: diagnostic
+    loop_time:
+      name: "Loop Time"
+      entity_category: diagnostic
 
 text_sensor: # Text Sensors
   - platform: ethernet_info
@@ -44,6 +60,16 @@ text_sensor: # Text Sensors
       name: "IP Address"
       icon: mdi:ip-outline
       id: main_ip
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: diagnostic
+
+binary_sensor:
+  - platform: homeassistant
+    id: vacation_mode
+    entity_id: input_boolean.vacation_mode
+    internal: true
 
 button: # Button Actions
   - platform: restart

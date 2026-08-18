@@ -78,6 +78,9 @@ sensor: # ADC
     # Convert ADC value to voltage (10-bit ADC, 3.3V reference, and 3:1 voltage divider)
     # value = adc * 3 * 3.3V / 1023.0
     reference_voltage: 9.9  # so returned value is ADC * 9.9 / 1023.0
+  - platform: debug
+    psram:
+      name: "Free PSRAM"
 
 touchscreen:
   platform: gt911
@@ -141,3 +144,6 @@ display:
         - 48        #g5
         - 47        #g6
         - 21        #g7
+
+debug:
+  update_interval: 15s

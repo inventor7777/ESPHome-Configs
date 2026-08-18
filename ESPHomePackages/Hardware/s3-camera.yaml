@@ -36,3 +36,11 @@ binary_sensor:
       number: GPIO0
       mode: INPUT_PULLUP
       inverted: true
+
+debug:
+  update_interval: 15s
+
+sensor:
+  - platform: debug
+    psram:
+      name: "Free PSRAM"
