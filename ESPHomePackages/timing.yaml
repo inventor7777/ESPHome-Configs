@@ -3,8 +3,8 @@ time:
     id: sntp_time
     timezone: "America/Chicago"
     servers:
+      - 192.168.50.1
       - time.cloudflare.com
-      - time.google.com
       - pool.ntp.org
 
 sun:

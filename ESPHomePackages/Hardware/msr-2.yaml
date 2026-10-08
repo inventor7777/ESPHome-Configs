@@ -16,7 +16,7 @@ packages:
     vars:
       rgb_led_gpio: GPIO3
       rgb_led_chipset: WS2812
-      rgb_led_rgb_order: grb
+      rgb_led_channel_colors: grb
       rgb_led_num_leds: "1"
       rgb_led_rmt_symbols: "48"
 

@@ -8,6 +8,7 @@ esp32:
 psram: # Configure PSRAM for camera use
   mode: octal
   speed: 80MHz
+  ignore_not_found: false
 
 packages:
   status_led: !include
@@ -19,7 +20,7 @@ packages:
     vars:
       rgb_led_gpio: GPIO48
       rgb_led_chipset: ws2812
-      rgb_led_rgb_order: GRB
+      rgb_led_channel_colors: GRB
       rgb_led_num_leds: "1"
       rgb_led_rmt_symbols: "48"
 

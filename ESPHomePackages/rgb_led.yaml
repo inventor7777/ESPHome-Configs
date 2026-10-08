@@ -2,7 +2,7 @@ defaults:
   rgb_led_name: "RGB LED"
   rgb_led_gpio: GPIO48
   rgb_led_chipset: ws2812
-  rgb_led_rgb_order: GRB
+  rgb_led_channel_colors: GRB
   rgb_led_num_leds: "1"
   rgb_led_rmt_symbols: "48"
 
@@ -43,7 +43,7 @@ light:
   - platform: esp32_rmt_led_strip
     chipset: ${rgb_led_chipset}
     rmt_symbols: ${rgb_led_rmt_symbols}
-    rgb_order: ${rgb_led_rgb_order}
+    channel_colors: ${rgb_led_channel_colors}
     pin: ${rgb_led_gpio}
     num_leds: ${rgb_led_num_leds}
     default_transition_length: 0s

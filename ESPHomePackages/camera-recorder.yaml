@@ -1,0 +1,77 @@
+network:
+  enable_high_performance: false
+  tcp_send_buffer: 32kB
+
+external_components:
+  - source:
+      type: local
+      path: Components/camera_recorder/components
+    components: [camera_recorder]
+
+camera_recorder:
+  id: recorder
+  camera_id: main_camera
+  time_id: sntp_time
+  clk_pin: GPIO39
+  cmd_pin: GPIO38
+  data0_pin: GPIO40
+  web_username: !secret camera_recorder_web_username
+  web_password: !secret camera_recorder_web_password
+  light_accent: "#18794e"
+  dark_accent: "#5fd39a"
+  light_active: "#dff3e8"
+  dark_active: "#173d2c"
+  mounted:
+    name: SD Card Mounted
+  recording:
+    name: Recording
+    on_press:
+      - light.turn_on:
+          id: status_led
+    on_release:
+      - light.turn_off:
+          id: status_led
+  motion:
+    name: Motion
+    on_press:
+      - camera_recorder.start: recorder
+      - button.press: pulse_rgb_led
+    on_release:
+      - camera_recorder.stop_and_classify: recorder
+
+  motion_score:
+    name: Motion Score
+  sd_free:
+    name: SD Card Free
+  motion_threshold:
+    name: Motion Threshold
+  motion_hold_time:
+    name: Motion Hold Time
+  motion_detection_fps:
+    name: Motion Detection FPS
+  min_person_detections:
+    name: Minimum Person Detections
+  record_people:
+    name: Record People
+  record_other_motion:
+    name: Record Other Motion
+  auto_deletion:
+    name: Auto Deletion
+  motion_detection:
+    name: Motion Detection
+
+button:
+  - platform: template
+    name: Start Recording
+    on_press:
+      - camera_recorder.start: recorder
+
+  - platform: template
+    name: Stop Recording
+    on_press:
+      - camera_recorder.stop: recorder
+
+  - platform: template
+    name: Stop and Classify Recording
+    on_press:
+      - camera_recorder.stop_and_classify: recorder

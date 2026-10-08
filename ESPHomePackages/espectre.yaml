@@ -1,0 +1,61 @@
+# Load ESPectre component from GitHub
+external_components:
+  - source:
+      type: git
+      url: https://github.com/francescopace/espectre
+      ref: main
+    components: [ espectre ]
+    refresh: always
+
+# ESPectre - WiFi CSI Motion Detection
+# All parameters shown with defaults
+espectre:
+  id: espectre_csi
+  
+  # Traffic Generator
+  traffic_generator_rate: 50   # Packets/sec for CSI generation (0-1000)
+  traffic_generator_mode: ping   # ping (default) or dns
+  
+  # Gain Lock Mode
+  gain_lock: auto               # auto (default), enabled, disabled
+  
+  # Detection Algorithm
+  detection_algorithm: mvs      # mvs (default) or ml (neural network)
+  
+  # Segmentation parameters
+  segmentation_window_size: 100  # Analysis window size in packets (10-200)
+  segmentation_threshold: auto  # auto/min (mvs/ml: 0.0-10.0)
+  
+  # Filters
+  hampel_enabled: true          # Outlier removal (default: true)
+  hampel_window: 7              # Filter window size (3-11, odd numbers)
+  hampel_threshold: 5.0         # Outlier detection threshold (1.0-10.0)
+  lowpass_enabled: false        # Noise reduction (default: false)
+  lowpass_cutoff: 11.0          # Cutoff frequency in Hz (5.0-20.0)
+  
+  # Web Bluetooth telemetry/control channel
+  ble_channel_enabled: false     # auto (default), true, false
+  # Manual subcarrier override (leave commented for auto-calibration)
+  #selected_subcarriers: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+  
+# esp32_ble_server:
+#   id: espectre_ble_server
+#   services:
+#     - uuid: "d33ff46b-2203-4775-bc6f-b3a2c36af8f0"
+#       advertise: true
+#       characteristics:
+#         # Telemetry notify payload: 8 bytes (float32 movement, float32 threshold)
+#         - id: espectre_ble_telemetry
+#           uuid: "119d5cac-48da-4bd9-bfc3-169805868258"
+#           notify: true
+#         # Sysinfo notifications: text key=value lines, ending with END
+#         - id: espectre_ble_sysinfo
+#           uuid: "c8c89ffa-c401-461f-9ffc-942fa04adfe3"
+#           read: true
+#           notify: true
+#           value: ""
+#         # Control writes: REQ_SYSINFO, SET_THRESHOLD:X.XX
+#         - id: espectre_ble_control
+#           uuid: "33ed9214-a8d7-40e8-82d1-c82747dcdc71"
+#           write: true
+#           write_no_response: true

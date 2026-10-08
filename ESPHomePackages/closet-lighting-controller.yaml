@@ -1,11 +1,31 @@
+esphome:
+  on_boot:
+    - sensor.template.publish:
+        id: cct_lifetime_door_openings
+        state: !lambda 'return id(cct_lifetime_door_openings_count);'
+
+# These are appliances that are expected to work for a long time. This simply prolongs the flash.        
+preferences:
+  flash_write_interval: 5min
+
 globals:
   - id: tempest_night_mode_cache
     type: bool
     restore_value: yes
     initial_value: 'false'
 
-  - id: cct_light_on_minutes
+  - id: cct_light_on_seconds
     type: uint16_t
+    initial_value: '0'
+
+  - id: cct_lifetime_light_on_seconds
+    type: uint32_t
+    restore_value: yes
+    initial_value: '0'
+
+  - id: cct_lifetime_door_openings_count
+    type: uint32_t
+    restore_value: yes
     initial_value: '0'
 
 sensor:
@@ -14,7 +34,28 @@ sensor:
     name: Light On Time
     icon: mdi:clock-start
     unit_of_measurement: min
+    accuracy_decimals: 1
+    filters:
+      - delta: 0.2
+    update_interval: never
+
+  - platform: template
+    id: cct_lifetime_light_on_time
+    name: Lifetime Light On Time
+    icon: mdi:clock-start
+    unit_of_measurement: min
+    accuracy_decimals: 1
+    filters:
+      - delta: 0.2
+    state_class: measurement
+    update_interval: never
+
+  - platform: template
+    id: cct_lifetime_door_openings
+    name: Lifetime Door Openings
+    icon: mdi:door-open
     accuracy_decimals: 0
+    state_class: measurement
     update_interval: never
 
 number:
@@ -82,15 +123,15 @@ light:
     restore_mode: RESTORE_DEFAULT_OFF
     default_transition_length: 1000ms
     on_turn_on:
-      - lambda: 'id(cct_light_on_minutes) = 0;'
+      - lambda: 'id(cct_light_on_seconds) = 0;'
       - sensor.template.publish:
           id: cct_light_on_time
-          state: !lambda 'return id(cct_light_on_minutes);'
+          state: !lambda 'return id(cct_light_on_seconds) / 60.0f;'
     on_turn_off:
-      - lambda: 'id(cct_light_on_minutes) = 0;'
+      - lambda: 'id(cct_light_on_seconds) = 0;'
       - sensor.template.publish:
           id: cct_light_on_time
-          state: !lambda 'return id(cct_light_on_minutes);'
+          state: !lambda 'return id(cct_light_on_seconds) / 60.0f;'
 
 interval:
   - interval: 1min
@@ -106,15 +147,30 @@ interval:
           condition:
             light.is_on: cct_light
           then:
-            - lambda: 'id(cct_light_on_minutes)++;'
-            - sensor.template.publish:
-                id: cct_light_on_time
-                state: !lambda 'return id(cct_light_on_minutes);'
             - if:
                 condition:
-                  lambda: 'return id(cct_light_on_minutes) >= 120;'
+                  lambda: 'return id(cct_light_on_seconds) >= 120 * 60;'
                 then:
                   - light.turn_off: cct_light
+                  - logger.log:
+                      level: WARN
+                      tag: user
+                      format: "Light has been on for 2 hours straight, turning off light"
+
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            light.is_on: cct_light
+          then:
+            - lambda: 'id(cct_light_on_seconds)++;'
+            - lambda: 'id(cct_lifetime_light_on_seconds)++;'
+      - sensor.template.publish:
+          id: cct_light_on_time
+          state: !lambda 'return id(cct_light_on_seconds) / 60.0f;'
+      - sensor.template.publish:
+          id: cct_lifetime_light_on_time
+          state: !lambda 'return id(cct_lifetime_light_on_seconds) / 60.0f;'
 
 binary_sensor:
   - platform: homeassistant
@@ -137,6 +193,10 @@ binary_sensor:
     filters:
       - delayed_on_off: 30ms
     on_press:
+      - lambda: 'id(cct_lifetime_door_openings_count)++;'
+      - sensor.template.publish:
+          id: cct_lifetime_door_openings
+          state: !lambda 'return id(cct_lifetime_door_openings_count);'
       - if:
           condition:
             lambda: 'return id(tempest_night_mode_cache);'
