@@ -1,0 +1,435 @@
+esphome:
+  min_version: 2026.8.0
+  on_boot:
+    priority: -100
+    then:
+      - button.press: blink_rgb_led
+      # Wait for the LD2450 startup restart before sending its Bluetooth command.
+      - delay: 2s
+      - switch.turn_off: radar_bluetooth
+
+packages:
+  - !include
+      file: ../rgb_led.yaml
+      vars:
+        rgb_led_gpio: GPIO3
+
+esp32:
+  variant: esp32c3
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+globals:
+  - id: ltr390_last_update
+    restore_value: no
+    type: uint32_t
+    initial_value: '0'
+
+i2c:
+  sda: GPIO1
+  scl: GPIO0
+  id: bus_a
+
+uart:
+  id: uart_bus
+  tx_pin:
+    number: GPIO21
+    mode:
+      input: true
+      pullup: true
+  rx_pin:
+    number: GPIO20
+    mode:
+      input: true
+      pullup: true
+  rx_buffer_size: 1024
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+ld2450:
+  id: ld2450_radar
+  uart_id: uart_bus
+
+number:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    presence_timeout:
+      name: "Timeout"
+    zone_1:
+      x1:
+        name: Zone-1 X1
+      y1:
+        name: Zone-1 Y1
+      x2:
+        name: Zone-1 X2
+      y2:
+        name: Zone-1 Y2
+    zone_2:
+      x1:
+        name: Zone-2 X1
+      y1:
+        name: Zone-2 Y1
+      x2:
+        name: Zone-2 X2
+      y2:
+        name: Zone-2 Y2
+    zone_3:
+      x1:
+        name: Zone-3 X1
+      y1:
+        name: Zone-3 Y1
+      x2:
+        name: Zone-3 X2
+      y2:
+        name: Zone-3 Y2
+  - platform: template
+    name: "DPS310 Pressure Offset"
+    id: dps310_pressure_offset
+    disabled_by_default: true
+    restore_value: true
+    initial_value: 0.0
+    min_value: -100.0
+    max_value: 100.0
+    entity_category: "CONFIG"
+    unit_of_measurement: "hPa"
+    optimistic: true
+    update_interval: never
+    step: 0.1
+    mode: box
+  - platform: template
+    name: DPS310 Temperature Offset
+    id: dps310_temperature_offset
+    restore_value: true
+    initial_value: 18.86
+    min_value: -70.0
+    max_value: 70.0
+    entity_category: "CONFIG"
+    unit_of_measurement: "°C"
+    optimistic: true
+    update_interval: never
+    step: 0.1
+    mode: box
+  - platform: template
+    name: LTR390 Update Interval
+    id: ltr390_update_interval
+    restore_value: true
+    initial_value: 60
+    min_value: 1
+    max_value: 300
+    entity_category: "CONFIG"
+    unit_of_measurement: "s"
+    optimistic: true
+    update_interval: never
+    step: 1
+    mode: box
+
+output:
+  - platform: ledc
+    pin: GPIO10
+    id: buzzer
+
+binary_sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    has_target:
+      id: ld2450_presence
+      name: "LD2450 Presence"
+    has_moving_target:
+      id: ld2450_moving_target
+      name: "LD2450 Moving Target"
+    has_still_target:
+      id: ld2450_still_target
+      name: "LD2450 Still Target"
+
+  - platform: gpio
+    name: Boot Button
+    id: boot_button
+    pin:
+      number: GPIO9
+      inverted: true
+      ignore_strapping_warning: true
+      mode:
+        input: true
+        pullup: true
+
+sensor:
+  - platform: dps310
+    id: dps_310
+    pressure:
+      name: "DPS310 Pressure"
+      id: dps310pressure
+      filters:
+        - lambda: |-
+            float offset = id(dps310_pressure_offset).state;
+            return isnan(offset) ? x : x + offset;
+    temperature:
+      name: "DPS310 Temperature"
+      id: dps310temperature
+      filters:
+        - lambda: return x - id(dps310_temperature_offset).state;
+    update_interval: 30s
+    i2c_id: bus_a
+
+  - platform: ltr390
+    id: ltr_390
+    update_interval: never
+    light:
+      name: "LTR390 Light"
+      id: ltr390light
+    uv_index:
+      name: "LTR390 UV Index"
+      id: ltr390uvindex
+
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    target_count:
+      name: Presence Target Count
+      state_class: measurement
+      id: presence_target_count
+    still_target_count:
+      name: Still Target Count
+      state_class: measurement
+    moving_target_count:
+      name: Moving Target Count
+      state_class: measurement
+    target_1:
+      x:
+        name: Target-1 X
+        id: target_1_x
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      y:
+        name: Target-1 Y
+        id: target_1_y
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      speed:
+        name: Target-1 Speed
+        filters:
+          - lambda: |-
+              return isnan(x) ? 0.0 : x;
+      angle:
+        name: Target-1 Angle
+        id: target_1_angle
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      distance:
+        name: Target-1 Distance
+        id: target_1_distance
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      resolution:
+        name: Target-1 Resolution
+        id: target_1_resolution
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+    target_2:
+      x:
+        name: Target-2 X
+        id: target_2_x
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      y:
+        name: Target-2 Y
+        id: target_2_y
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      speed:
+        name: Target-2 Speed
+        filters:
+          - lambda: |-
+              return isnan(x) ? 0.0 : x;
+      angle:
+        name: Target-2 Angle
+        id: target_2_angle
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      distance:
+        name: Target-2 Distance
+        id: target_2_distance
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      resolution:
+        name: Target-2 Resolution
+        id: target_2_resolution
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+    target_3:
+      x:
+        name: Target-3 X
+        id: target_3_x
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      y:
+        name: Target-3 Y
+        id: target_3_y
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      speed:
+        name: Target-3 Speed
+        filters:
+          - lambda: |-
+              return isnan(x) ? 0.0 : x;
+      angle:
+        name: Target-3 Angle
+        id: target_3_angle
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      distance:
+        name: Target-3 Distance
+        id: target_3_distance
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+      resolution:
+        name: Target-3 Resolution
+        id: target_3_resolution
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? (isnan(x) ? 0.0f : x) : NAN;
+    zone_1:
+      target_count:
+        name: Zone-1 All Target Count
+        state_class: measurement
+      still_target_count:
+        name: Zone-1 Still Target Count
+        state_class: measurement
+      moving_target_count:
+        name: Zone-1 Moving Target Count
+        state_class: measurement
+    zone_2:
+      target_count:
+        name: Zone-2 All Target Count
+        state_class: measurement
+      still_target_count:
+        name: Zone-2 Still Target Count
+        state_class: measurement
+      moving_target_count:
+        name: Zone-2 Moving Target Count
+        state_class: measurement
+    zone_3:
+      target_count:
+        name: Zone-3 All Target Count
+        state_class: measurement
+      still_target_count:
+        name: Zone-3 Still Target Count
+        state_class: measurement
+      moving_target_count:
+        name: Zone-3 Moving Target Count
+        state_class: measurement
+
+button:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    factory_reset:
+      name: "Factory Reset LD2450"
+      disabled_by_default: True
+    restart:
+      name: "Restart Radar"
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          uint32_t current_time = millis() / 1000;  // Convert to seconds
+          uint32_t last_update = id(ltr390_last_update);
+          float configured_interval = id(ltr390_update_interval).state;
+          uint32_t interval = (configured_interval >= 1.0f) ? (uint32_t)configured_interval : 60u;
+
+          // Immediate update on boot (when last_update is still 0)
+          if (last_update == 0) {
+            id(ltr_390).update();
+            id(ltr390_last_update) = current_time;
+            return;
+          }
+
+          // Check if enough time has passed
+          if (current_time - last_update >= interval) {
+            id(ltr_390).update();
+            id(ltr390_last_update) = current_time;
+          }
+
+switch:
+  - platform: template
+    name: "Radar Statistics Enabled"
+    id: radar_statistics_enabled
+    icon: mdi:chart-line
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    entity_category: config
+    on_state:
+      - lambda: |-
+          sensor::Sensor *sensors[] = {
+              id(target_1_x), id(target_1_y), id(target_1_angle), id(target_1_distance), id(target_1_resolution),
+              id(target_2_x), id(target_2_y), id(target_2_angle), id(target_2_distance), id(target_2_resolution),
+              id(target_3_x), id(target_3_y), id(target_3_angle), id(target_3_distance), id(target_3_resolution)};
+          for (auto *sensor : sensors) {
+            sensor->publish_state(sensor->get_raw_state());
+          }
+          text_sensor::TextSensor *directions[] = {id(target_1_direction), id(target_2_direction), id(target_3_direction)};
+          for (auto *direction : directions) {
+            direction->publish_state(direction->get_raw_state());
+          }
+  - platform: factory_reset
+    id: factory_reset_switch
+    internal: true
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    bluetooth:
+      name: "LD2450 Bluetooth"
+      id: radar_bluetooth
+    multi_target:
+      name: "Multi Target Tracking"
+
+select:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    baud_rate:
+      name: "Baud Rate"
+      disabled_by_default: true
+    zone_type:
+      name: "Zone Type"
+
+text_sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    version:
+      name: "LD2450 Firmware"
+    mac_address:
+      name: "LD2450 BT MAC"
+    target_1:
+      direction:
+        name: "Target-1 Direction"
+        id: target_1_direction
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? x : std::string("unknown");
+    target_2:
+      direction:
+        name: "Target-2 Direction"
+        id: target_2_direction
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? x : std::string("unknown");
+    target_3:
+      direction:
+        name: "Target-3 Direction"
+        id: target_3_direction
+        filters:
+          - lambda: |-
+              return id(radar_statistics_enabled).state ? x : std::string("unknown");

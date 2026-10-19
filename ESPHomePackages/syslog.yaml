@@ -10,4 +10,5 @@ syslog:
 logger:
   logs: 
     internal_temperature.esp32: WARN
+    internal_temperature: WARN
     espectre: WARN

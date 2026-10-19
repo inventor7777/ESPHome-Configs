@@ -24,10 +24,6 @@ esp32:
   partitions: shelly-plug-us-stock.csv
   framework:
     type: esp-idf
-    
-ota:
-  - platform: esphome
-    allow_partition_access: true
 
 substitutions:
   voltage_divider: "2121.4"

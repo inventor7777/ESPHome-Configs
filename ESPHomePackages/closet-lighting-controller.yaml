@@ -47,7 +47,7 @@ sensor:
     accuracy_decimals: 1
     filters:
       - delta: 0.2
-    state_class: measurement
+    state_class: total_increasing
     update_interval: never
 
   - platform: template
@@ -55,7 +55,7 @@ sensor:
     name: Lifetime Door Openings
     icon: mdi:door-open
     accuracy_decimals: 0
-    state_class: measurement
+    state_class: total_increasing
     update_interval: never
 
 number:
