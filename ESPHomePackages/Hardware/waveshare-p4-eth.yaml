@@ -2,11 +2,14 @@ esp32:
   variant: esp32p4
   engineering_sample: true
   flash_size: 32MB
-  cpu_frequency: 400MHz
+  cpu_frequency: 360MHz
   framework:
     type: esp-idf
     advanced:
       enable_idf_experimental_features: true
+    #sdkconfig_options:
+      #CONFIG_IDF_EXPERIMENTAL_FEATURES: "y"
+      #CONFIG_ESP_FORCE_400MHZ_ON_REV_LESS_V3: "y"
     
 psram:
   mode: hex
@@ -24,54 +27,3 @@ ethernet:
     mode: CLK_EXT_IN
     pin: GPIO50
   phy_addr: 1
-  
-debug:
-  update_interval: 15s
-  
-sensor: # Numeric Sensors
-  - platform: internal_temperature
-    name: "CPU Temp"
-    unit_of_measurement: °C
-    id: cpu_temp
-  - platform: uptime
-    type: seconds
-    name: ESP Uptime
-    id: uptime_numeric
-    filters:
-      - multiply: 0.0000115741
-    unit_of_measurement: "d"
-  - platform: debug
-    free:
-      name: "Heap Free"
-      entity_category: diagnostic
-    min_free:
-      name: "Heap Min Free"
-      entity_category: diagnostic
-    fragmentation:
-      name: "Heap Fragmentation"
-      entity_category: diagnostic
-    loop_time:
-      name: "Loop Time"
-      entity_category: diagnostic
-
-text_sensor: # Text Sensors
-  - platform: ethernet_info
-    ip_address:
-      name: "IP Address"
-      icon: mdi:ip-outline
-      id: main_ip
-  - platform: debug
-    reset_reason:
-      name: "Reset Reason"
-      entity_category: diagnostic
-
-binary_sensor:
-  - platform: homeassistant
-    id: vacation_mode
-    entity_id: input_boolean.vacation_mode
-    internal: true
-
-button: # Button Actions
-  - platform: restart
-    name: "Restart"
-    id: restart_button

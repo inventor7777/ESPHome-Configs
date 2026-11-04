@@ -1,0 +1,76 @@
+# Override defaults through substitutions or !include vars (e.g. remote_shell_profiling: "true").
+# Optional IDs/hardware settings use normal package overrides in the device YAML:
+# remote_shell:
+#   i2c_id: existing_bus_id  # Omit to disable I2C commands; a blank ID is invalid.
+#   script_ids: [existing_script_id]
+#   sdmmc: ...             # Required when remote_shell_commands_sdmmc is enabled.
+# Enabling Wi-Fi/Ethernet/Thread/Zigbee commands requires the matching ESPHome interface/stack.
+defaults:
+  remote_shell_component_path: "Components/esphome_remote_shell/components"
+  remote_shell_port: "23"
+  remote_shell_idle_timeout: "5min"
+  remote_shell_storage_root: "/sdcard"
+  remote_shell_elf_root: "/sdcard"
+  remote_shell_profiling: "false"
+  remote_shell_task_heap_tracking: "false"
+  remote_shell_packet_trace_root: "/sdcard/captures"
+  remote_shell_username: !secret remote_shell_username
+  remote_shell_password: !secret remote_shell_password
+  remote_shell_commands_low_level: "false"
+  remote_shell_commands_efuse: "true"
+  remote_shell_commands_diagnostics: "true"
+  remote_shell_commands_esphome: "true"
+  remote_shell_commands_system: "true"
+  remote_shell_commands_memory: "true"
+  remote_shell_commands_tasks: "true"
+  remote_shell_commands_log: "true"
+  remote_shell_commands_network: "true"
+  remote_shell_commands_wifi: "true"
+  remote_shell_commands_ethernet: "false"
+  remote_shell_commands_sdmmc: "false"
+  remote_shell_commands_ieee802154: "false"
+  remote_shell_commands_openthread: "false"
+  remote_shell_commands_zigbee: "false"
+  remote_shell_commands_elf: "true"
+  remote_shell_commands_packet_trace: "false"
+  remote_shell_commands_gpio: "true"
+  remote_shell_commands_nvs: "true"
+  remote_shell_commands_sleep: "true"
+
+external_components:
+  - source:
+      type: local
+      path: ${remote_shell_component_path}
+    components: [remote_shell]
+
+remote_shell:
+  port: ${remote_shell_port}
+  idle_timeout: ${remote_shell_idle_timeout}
+  storage_root: ${remote_shell_storage_root}
+  elf_root: ${remote_shell_elf_root}
+  profiling: ${remote_shell_profiling}
+  task_heap_tracking: ${remote_shell_task_heap_tracking}
+  packet_trace_root: ${remote_shell_packet_trace_root}
+  username: ${remote_shell_username}
+  password: ${remote_shell_password}
+  commands:
+    low_level: ${remote_shell_commands_low_level}
+    efuse: ${remote_shell_commands_efuse}
+    diagnostics: ${remote_shell_commands_diagnostics}
+    esphome: ${remote_shell_commands_esphome}
+    system: ${remote_shell_commands_system}
+    memory: ${remote_shell_commands_memory}
+    tasks: ${remote_shell_commands_tasks}
+    log: ${remote_shell_commands_log}
+    network: ${remote_shell_commands_network}
+    wifi: ${remote_shell_commands_wifi}
+    ethernet: ${remote_shell_commands_ethernet}
+    sdmmc: ${remote_shell_commands_sdmmc}
+    ieee802154: ${remote_shell_commands_ieee802154}
+    openthread: ${remote_shell_commands_openthread}
+    zigbee: ${remote_shell_commands_zigbee}
+    elf: ${remote_shell_commands_elf}
+    packet_trace: ${remote_shell_commands_packet_trace}
+    gpio: ${remote_shell_commands_gpio}
+    nvs: ${remote_shell_commands_nvs}
+    sleep: ${remote_shell_commands_sleep}

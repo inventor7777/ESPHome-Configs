@@ -1,0 +1,276 @@
+# Govee H5082 dual outlet, RTL8720CF, stock 2 MiB flash layout.
+# Outlet numbering verified physically; blue = on, dim red = standby.
+packages:
+  - !include
+    file: ../relay.yaml
+    vars:
+      relay_pin: PA19
+      relay_button_pin: PA4
+      relay_id: outlet_1
+      relay_name: Outlet 1
+      relay_name_prefix: 'Outlet 1 '
+      relay_ready_id: statistics_ready
+  - !include
+    file: ../relay.yaml
+    vars:
+      relay_pin: PA18
+      relay_button_pin: PA11
+      relay_id: outlet_2
+      relay_name: Outlet 2
+      relay_name_prefix: 'Outlet 2 '
+      relay_ready_id: outlet_2_statistics_ready
+esphome:
+  project:
+    name: Govee.H5082
+    version: ''
+  # Work around the MCP macOS builder's PCH path quoting failure.
+  environment_variables:
+    ESPHOME_PCH_ENABLE: '0'
+  platformio_options:
+    board_flash.ota1: 0x00C000+0xE0000
+    board_flash.ota2: 0x0EC000+0xE0000
+  on_boot:
+    - priority: -101
+      then:
+        - script.execute: outlet_1_update_led
+        - script.execute: outlet_2_update_led
+rtl87xx:
+  board: generic-rtl8720cf-2mb-896k
+
+switch:
+  - id: !extend outlet_1
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              lambda: return id(statistics_ready);
+            then:
+              - script.execute: outlet_1_update_led
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              lambda: return id(statistics_ready);
+            then:
+              - script.execute: outlet_1_update_led
+  - id: !extend outlet_2
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              lambda: return id(outlet_2_statistics_ready);
+            then:
+              - script.execute: outlet_2_update_led
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              lambda: return id(outlet_2_statistics_ready);
+            then:
+              - script.execute: outlet_2_update_led
+  - platform: template
+    id: outlet_1_led_enabled
+    name: Outlet 1 LED Enabled
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    on_turn_on:
+      then:
+        - script.execute: outlet_1_update_led
+    on_turn_off:
+      then:
+        - script.execute: outlet_1_update_led
+  - platform: template
+    id: outlet_1_standby_led
+    name: Outlet 1 Standby LED
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    on_turn_on:
+      then:
+        - script.execute: outlet_1_update_led
+    on_turn_off:
+      then:
+        - script.execute: outlet_1_update_led
+  - platform: template
+    id: outlet_2_led_enabled
+    name: Outlet 2 LED Enabled
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    on_turn_on:
+      then:
+        - script.execute: outlet_2_update_led
+    on_turn_off:
+      then:
+        - script.execute: outlet_2_update_led
+  - platform: template
+    id: outlet_2_standby_led
+    name: Outlet 2 Standby LED
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    on_turn_on:
+      then:
+        - script.execute: outlet_2_update_led
+    on_turn_off:
+      then:
+        - script.execute: outlet_2_update_led
+binary_sensor:
+  - id: !extend outlet_1_button
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: return id(outlet_1_button_lock).state;
+            then:
+              - script.execute: outlet_1_lock_feedback
+  - id: !extend outlet_2_button
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: return id(outlet_2_button_lock).state;
+            then:
+              - script.execute: outlet_2_lock_feedback
+output:
+  # Stock normal-on indicators: active low, from 0x9B01E6A8.
+  - platform: gpio
+    id: outlet_1_on_led
+    pin:
+      number: PA7
+      inverted: true
+  - platform: gpio
+    id: outlet_2_on_led
+    pin:
+      number: PA3
+      inverted: true
+  # Red standby/feedback indicators use PWM; blue on indicators use GPIO.
+  - platform: libretiny_pwm
+    id: outlet_1_status_led
+    frequency: 1kHz
+    pin:
+      number: PA17
+      inverted: true
+  - platform: libretiny_pwm
+    id: outlet_2_status_led
+    frequency: 1kHz
+    pin:
+      number: PA2
+      inverted: true
+
+light:
+  - platform: monochromatic
+    id: outlet_1_red_led
+    output: outlet_1_status_led
+    internal: true
+    default_transition_length: 0s
+    restore_mode: ALWAYS_OFF
+  - platform: monochromatic
+    id: outlet_2_red_led
+    output: outlet_2_status_led
+    internal: true
+    default_transition_length: 0s
+    restore_mode: ALWAYS_OFF
+
+number:
+  - platform: template
+    id: outlet_1_standby_brightness
+    name: Outlet 1 Standby LED Brightness
+    entity_category: config
+    unit_of_measurement: '%'
+    min_value: 1
+    max_value: 100
+    step: 1
+    initial_value: 30
+    restore_value: true
+    optimistic: true
+    icon: mdi:led-off
+    on_value:
+      - then:
+          - script.execute: outlet_1_update_led
+  - platform: template
+    id: outlet_2_standby_brightness
+    name: Outlet 2 Standby LED Brightness
+    entity_category: config
+    unit_of_measurement: '%'
+    min_value: 1
+    max_value: 100
+    step: 1
+    initial_value: 30
+    restore_value: true
+    optimistic: true
+    icon: mdi:led-off
+    on_value:
+      - then:
+          - script.execute: outlet_2_update_led
+script:
+  - id: outlet_1_update_led
+    mode: restart
+    then:
+      - lambda: |-
+          const bool blue_on = id(outlet_1_led_enabled).state && id(outlet_1).state;
+          if (blue_on) id(outlet_1_on_led).turn_on();
+          else id(outlet_1_on_led).turn_off();
+          const bool red_on = id(outlet_1_led_enabled).state && !id(outlet_1).state && id(outlet_1_standby_led).state;
+          const float brightness = id(outlet_1_standby_brightness).state / 100.0f;
+          auto &values = id(outlet_1_red_led).remote_values;
+          if (values.is_on() != red_on || (red_on && fabsf(values.get_brightness() - brightness) > 0.005f)) {
+            auto call = id(outlet_1_red_led).make_call();
+            call.set_state(red_on);
+            if (red_on) call.set_brightness(brightness);
+            call.perform();
+          }
+  - id: outlet_2_update_led
+    mode: restart
+    then:
+      - lambda: |-
+          const bool blue_on = id(outlet_2_led_enabled).state && id(outlet_2).state;
+          if (blue_on) id(outlet_2_on_led).turn_on();
+          else id(outlet_2_on_led).turn_off();
+          const bool red_on = id(outlet_2_led_enabled).state && !id(outlet_2).state && id(outlet_2_standby_led).state;
+          const float brightness = id(outlet_2_standby_brightness).state / 100.0f;
+          auto &values = id(outlet_2_red_led).remote_values;
+          if (values.is_on() != red_on || (red_on && fabsf(values.get_brightness() - brightness) > 0.005f)) {
+            auto call = id(outlet_2_red_led).make_call();
+            call.set_state(red_on);
+            if (red_on) call.set_brightness(brightness);
+            call.perform();
+          }
+  - id: outlet_1_lock_feedback
+    mode: restart
+    then:
+      - lambda: id(outlet_1_red_led).turn_off().perform();
+      - delay: 250ms
+      - lambda: auto call = id(outlet_1_red_led).turn_on(); call.set_brightness(1.0f); call.perform();
+      - delay: 250ms
+      - lambda: id(outlet_1_red_led).turn_off().perform();
+      - delay: 250ms
+      - lambda: auto call = id(outlet_1_red_led).turn_on(); call.set_brightness(1.0f); call.perform();
+      - delay: 250ms
+      - script.execute: outlet_1_update_led
+  - id: outlet_2_lock_feedback
+    mode: restart
+    then:
+      - lambda: id(outlet_2_red_led).turn_off().perform();
+      - delay: 250ms
+      - lambda: auto call = id(outlet_2_red_led).turn_on(); call.set_brightness(1.0f); call.perform();
+      - delay: 250ms
+      - lambda: id(outlet_2_red_led).turn_off().perform();
+      - delay: 250ms
+      - lambda: auto call = id(outlet_2_red_led).turn_on(); call.set_brightness(1.0f); call.perform();
+      - delay: 250ms
+      - script.execute: outlet_2_update_led
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: return !id(outlet_1_lock_feedback).is_running();
+          then:
+            - script.execute: outlet_1_update_led
+      - if:
+          condition:
+            lambda: return !id(outlet_2_lock_feedback).is_running();
+          then:
+            - script.execute: outlet_2_update_led

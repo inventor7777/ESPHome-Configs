@@ -1,0 +1,69 @@
+# Shared diagnostics and controls for LibreTiny devices with Wi-Fi and API configured.
+defaults:
+  network_mode: "wifi"
+
+debug:
+  update_interval: 15s
+  
+# Temporary pin for the RTL8720CF reboot fix; remove when ESPHome recommends 1.14.0 or newer.
+rtl87xx:
+  framework:
+    version: 1.14.0
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_sensor
+    unit_of_measurement: dBm
+  - platform: uptime
+    type: seconds
+    name: "Uptime"
+    filters:
+      - multiply: 0.0000115741
+    unit_of_measurement: "d"
+    accuracy_decimals: 4
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: diagnostic
+    min_free:
+      name: "Heap Min Free"
+      entity_category: diagnostic
+    block:
+      name: "Heap Max Block"
+      entity_category: diagnostic
+    loop_time:
+      name: "Loop Time"
+      entity_category: diagnostic
+
+text_sensor:
+  - platform: libretiny
+    version:
+      name: "LibreTiny Version"
+      entity_category: diagnostic
+  - platform: ${network_mode}_info
+    ip_address:
+      name: "IP Address"
+      icon: mdi:ip-outline
+      id: main_ip
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: diagnostic
+
+binary_sensor:
+  - platform: homeassistant
+    id: vacation_mode
+    entity_id: input_boolean.vacation_mode
+    internal: true
+
+button:
+  - platform: restart
+    name: "Restart"
+    id: restart_button
+
+ota:
+  - platform: esphome
+    encryption:
+    id: esphome_ota
+

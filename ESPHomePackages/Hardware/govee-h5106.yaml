@@ -1,0 +1,76 @@
+# Govee H5106 air-quality monitor: RTL8720CF, UART panel/sensor MCU.
+# Requires timing.yaml to provide sntp_time.
+esphome:
+  project:
+    name: Govee.H5106
+    version: ""
+  environment_variables:
+    ESPHOME_PCH_ENABLE: "0"
+  platformio_options:
+    board_flash.ota1: "0x00C000+0xE0000"
+    board_flash.ota2: "0x0EC000+0xE0000"
+
+rtl87xx:
+  board: generic-rtl8720cf-2mb-896k
+
+external_components:
+  - source:
+      type: local
+      path: Components/govee/h5106_monitor/components
+    components: [govee_h5106]
+
+uart:
+  id: monitor_uart
+  tx_pin: PA14
+  rx_pin: PA13
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 4096
+
+govee_h5106:
+  id: monitor
+  uart_id: monitor_uart
+  time_id: sntp_time
+  temperature:
+    name: Temperature
+  humidity:
+    name: Humidity
+  pm25:
+    name: PM2.5
+  connected:
+    id: govee_mcu_connected
+    name: MCU Connected
+  temperature_unit:
+    name: Display Temperature Unit
+  time_format:
+    name: Time Format
+  screen_mode:
+    name: Screen Mode
+  network_status:
+    id: govee_network_status
+    name: Wi-Fi Indicator
+  day_profile:
+    enabled:
+      name: Day Display
+    brightness:
+      name: Day Display Brightness
+    start:
+      name: Day Display Start
+    end:
+      name: Day Display End
+  night_profile:
+    enabled:
+      name: Night Display
+    brightness:
+      name: Night Display Brightness
+    start:
+      name: Night Display Start
+    end:
+      name: Night Display End
+
+packages:
+  - !include {file: ../govee-mcu-recovery.yaml, vars: {govee_recovery_uart: monitor_uart}}
+  - !include ../govee-network-indicator.yaml
+

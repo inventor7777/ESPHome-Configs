@@ -1,0 +1,209 @@
+# Optional ESPHome sensor ID, in Celsius. Invalid values fall back to the onboard sensor.
+defaults:
+  temperature_source: heater_temperature
+
+# Board: Generic - RTL8720CF (2M/896k)
+# Definition: definitions/boards/generic-rtl8720cf-2mb-896k/manifest.yaml
+
+esphome:
+  project:
+    name: "Govee.H7131"
+    version: ""
+  environment_variables:
+    ESPHOME_PCH_ENABLE: "0"
+  platformio_options:
+    board_flash.ota1: "0x00C000+0xE0000"
+    board_flash.ota2: "0x0EC000+0xE0000"
+
+rtl87xx:
+  board: generic-rtl8720cf-2mb-896k
+
+external_components:
+  - source:
+      type: local
+      path: Components/govee/heater/components
+    components: [govee_heater]
+
+packages:
+  - !include {file: ../govee-mcu-recovery.yaml, vars: {govee_recovery_uart: heater_uart}}
+  - !include
+      file: ../govee-network-indicator.yaml
+      vars:
+        govee_indicator_display: 'id(govee_display).has_state() && id(govee_display).state'
+
+uart:
+  id: heater_uart
+  tx_pin: PA14
+  rx_pin: PA13
+  baud_rate: 9600
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 256
+  debug:
+    direction: RX
+    after:
+      timeout: 50ms
+    sequence:
+      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+
+govee_heater:
+  light_button:
+    id: heater_light_button
+    name: Light Button
+    on_event:
+      - light.toggle: night_light
+  model: H7131
+  temperature_source: heater_control_temperature
+  auto_temperature_response:
+    name: Auto Temperature Response
+  mcu_firmware_version:
+    name: MCU Firmware Version
+  network_status:
+    id: govee_network_status
+    name: Wi-Fi Indicator
+  id: heater
+  uart_id: heater_uart
+  climate:
+    id: heater_climate
+    name: None
+    thermostat_id: heater_thermostat
+  child_lock:
+    name: Child Lock
+    entity_category: config
+  display_auto_off:
+    id: govee_display_sleep
+    name: Display Sleep
+    icon: mdi:brightness-5
+    entity_category: config
+  display_temporarily_awake:
+    id: govee_display_temporarily_awake
+    name: Display Temporarily Awake
+  shutdown_timer:
+    entity_category: config
+    name: Shutdown Timer
+    mode: BOX
+  cutoff_remaining:
+    name: 24-Hour Cutoff Remaining
+  timer_remaining:
+    name: Timer Remaining
+  temperature:
+    id: heater_temperature
+    name: Temperature
+  warnings_raw:
+    name: Warnings Raw
+  panel_interaction:
+    name: Panel Interaction
+  connected:
+    id: govee_mcu_connected
+    name: MCU Connected
+  appliance_running:
+    id: govee_appliance_running
+    name: Appliance Running
+    on_release:
+      - if:
+          condition:
+            lambda: return !id(heater).stop_requested();
+          then:
+            - climate.control:
+                id: heater_thermostat
+                mode: 'OFF'
+  fault:
+    id: heater_fault
+    name: Control Inhibited
+    on_press:
+      - climate.control:
+          id: heater_thermostat
+          mode: 'OFF'
+  overheat:
+    name: Overheat
+  tip_over:
+    name: Tip Over
+  sensor_fault:
+    name: Temperature Sensor Fault
+  auto_shutdown:
+    name: 24 Hour Auto Shutdown
+
+climate:
+  - platform: thermostat
+    id: heater_thermostat
+    name: Thermostat Engine
+    internal: true
+    sensor: heater_control_temperature
+    visual:
+      min_temperature: 5
+      max_temperature: 30
+      temperature_step: 1
+    heat_deadband: 0.5
+    heat_overrun: 0.0
+    min_heating_off_time: 30s
+    min_heating_run_time: 30s
+    min_fanning_off_time: 30s
+    min_fanning_run_time: 30s
+    min_idle_time: 30s
+    startup_delay: true
+    on_boot_restore_from: memory
+    default_preset: Home
+    preset:
+      - name: Home
+        default_target_temperature_low: 20
+        mode: 'OFF'
+    heat_action:
+      - lambda: id(heater).thermostat_heat();
+    fan_only_action:
+      - lambda: id(heater).thermostat_fan();
+    idle_action:
+      - lambda: id(heater).thermostat_stop();
+    off_mode:
+      - lambda: id(heater).thermostat_stop();
+
+binary_sensor:
+  - platform: template
+    id: govee_display
+    name: Display
+    icon: mdi:brightness-5
+    lambda: |-
+      if (!id(govee_appliance_running).has_state() ||
+          !id(govee_display_sleep).has_state() ||
+          !id(govee_display_temporarily_awake).has_state())
+        return {};
+      return id(govee_appliance_running).state &&
+             (!id(govee_display_sleep).state || id(govee_display_temporarily_awake).state);
+
+output:
+  - platform: libretiny_pwm
+    id: night_light_red
+    pin: PA2
+    frequency: 25kHz
+  - platform: libretiny_pwm
+    id: night_light_green
+    pin: PA11
+    frequency: 25kHz
+  - platform: libretiny_pwm
+    id: night_light_blue
+    pin: PA3
+    frequency: 25kHz
+
+light:
+  - platform: rgb
+    name: Night Light
+    id: night_light
+    red: night_light_red
+    green: night_light_green
+    blue: night_light_blue
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - pulse:
+      - random:
+sensor:
+  - platform: template
+    id: heater_control_temperature
+    internal: true
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    update_interval: 1s
+    lambda: |-
+      const float preferred = id(${temperature_source}).state;
+      return std::isfinite(preferred) ? preferred : id(heater_temperature).state;

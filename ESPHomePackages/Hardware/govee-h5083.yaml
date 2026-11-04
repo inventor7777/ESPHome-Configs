@@ -1,0 +1,11 @@
+# LED channel colors inferred from stock channel order; verify on first flash.
+# H5083: direct GPIO single outlet; shared controls/statistics/LED behavior.
+packages:
+  - !include
+      file: govee-single-plug.yaml
+      vars:
+        govee_plug_model: H5083
+        govee_plug_relay_pin: PA2
+        govee_plug_button_pin: PA11
+        govee_plug_red_pin: PA19
+        govee_plug_blue_pin: PA3

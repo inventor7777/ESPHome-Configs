@@ -1,0 +1,20 @@
+# Dewinwils TW16 (CB2S/BK7231N): confirmed stock GPIO mapping.
+esphome:
+  environment_variables:
+    ESPHOME_PCH_ENABLE: '0'
+packages:
+  - !include
+    file: ../relay.yaml
+    vars:
+      relay_pin: P24
+      relay_button_pin: P8
+      relay_name: Outlets
+      relay_ready_id: statistics_ready
+rtl87xx: !remove
+bk72xx:
+  board: cb2s
+status_led:
+  pin:
+    number: P7
+    inverted: true
+

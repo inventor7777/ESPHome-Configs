@@ -1,0 +1,119 @@
+# Govee H7123 purifier: RTL8720CF 2 MiB, UART-controlled panel MCU.
+esphome:
+  project:
+    name: "Govee.H7123"
+    version: ""
+  environment_variables:
+    ESPHOME_PCH_ENABLE: "0"
+  platformio_options:
+    board_flash.ota1: "0x00C000+0xE0000"
+    board_flash.ota2: "0x0EC000+0xE0000"
+
+rtl87xx:
+  board: generic-rtl8720cf-2mb-896k
+
+external_components:
+  - source:
+      type: local
+      path: Components/govee/h7123_purifier/components
+    components: [govee_h7123]
+
+uart:
+  id: purifier_uart
+  tx_pin: PA14
+  rx_pin: PA13
+  baud_rate: 9600
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 256
+
+govee_h7123:
+  connected:
+    id: govee_mcu_connected
+    name: MCU Connected
+  reset_wear_coefficients:
+    name: Reset Wear Coefficients
+  wear_coefficient_low:
+    name: Filter Wear Coefficient Low
+    mode: BOX
+  wear_coefficient_medium:
+    name: Filter Wear Coefficient Medium
+    mode: BOX
+  wear_coefficient_high:
+    name: Filter Wear Coefficient High
+    mode: BOX
+  wear_coefficient_sleep:
+    name: Filter Wear Coefficient Sleep
+    mode: BOX
+  wear_coefficient_auto:
+    name: Filter Wear Coefficient Auto
+    mode: BOX
+  wear_coefficient_custom:
+    name: Filter Wear Coefficient Custom
+    mode: BOX
+  mcu_firmware_version:
+    name: MCU Firmware Version
+  mcu_hardware_version:
+    name: MCU Hardware Version
+  network_status:
+    id: govee_network_status
+    name: Wi-Fi Indicator
+  id: purifier
+  uart_id: purifier_uart
+  fan:
+    restore_mode: RESTORE_DEFAULT_ON
+    name: Purifier
+    id: purifier_fan
+  child_lock:
+    entity_category: config
+    name: Pet Lock
+  display_temporarily_awake:
+    id: govee_display_temporarily_awake
+    name: Display Temporarily Awake
+  lighting:
+    id: govee_display_sleep
+    name: Display Sleep
+  shutdown_timer:
+    entity_category: config
+    name: Shutdown Timer
+    mode: BOX
+  timer_remaining:
+    name: Timer Remaining
+  air_quality_index:
+    state_class: measurement
+    name: PM2.5
+  air_quality:
+    name: Air Quality
+  filter_expired:
+    name: Filter Expired
+  filter_warning:
+    name: Filter Warning
+  reset_filter_life:
+    name: Reset Filter Life
+  filter_life:
+    name: Filter Life
+  filter_use_counter:
+    name: Filter Use Counter
+    filters:
+      - round_to_multiple_of: 100
+  panel_interaction:
+    name: Panel Interaction
+
+binary_sensor:
+  - platform: template
+    id: govee_display
+    name: Display
+    icon: mdi:brightness-5
+    lambda: |-
+      if (!id(govee_display_sleep).has_state() || !id(govee_display_temporarily_awake).has_state())
+        return {};
+      return id(purifier_fan).state &&
+             (!id(govee_display_sleep).state || id(govee_display_temporarily_awake).state);
+
+packages:
+  - !include {file: ../govee-mcu-recovery.yaml, vars: {govee_recovery_uart: purifier_uart}}
+  - !include
+      file: ../govee-network-indicator.yaml
+      vars:
+        govee_indicator_display: 'id(govee_display).has_state() && id(govee_display).state'

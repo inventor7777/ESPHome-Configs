@@ -1,0 +1,244 @@
+# One GPIO relay/button: lifetime counts, on-time, restore behavior, lock and auto-off.
+# Include once per relay. Hardware packages extend IDs for LEDs and protection.
+# Lifetime on-time is always stored as uint64_t milliseconds.
+# Relay cycles count each ON and OFF transition; startup OFF is not counted.
+defaults:
+  relay_ready_id: ${relay_id}_statistics_ready
+  relay_button_lock_id: ${relay_id}_button_lock
+  relay_auto_off_id: ${relay_id}_auto_off
+  relay_auto_off_delay_id: ${relay_id}_auto_off_delay
+  relay_power_on_behavior_id: ${relay_id}_power_on_behavior
+  relay_cycles_id: ${relay_id}_cycles
+  relay_button_presses_id: ${relay_id}_button_presses
+  relay_on_time_id: ${relay_id}_on_time
+  relay_started_id: ${relay_id}_started_ms
+  relay_active_id: ${relay_id}_timer_active
+  relay_id: outlet
+  relay_name: Outlet
+  relay_name_prefix: ''
+  relay_button_debounce: 20ms
+  relay_auto_off_script_id: ${relay_id}_auto_off_countdown
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: id(${relay_ready_id}) = true;
+        - if:
+            condition:
+              lambda: |-
+                const auto behavior = id(${relay_power_on_behavior_id}).current_option();
+                return behavior == "Always On" || (behavior == "Restore Last State" && id(${relay_id}_last_state));
+            then:
+              - switch.turn_on: ${relay_id}
+        - lambda: id(${relay_id}_last_state) = id(${relay_id}).state;
+  on_shutdown:
+    - priority: 700
+      then:
+        - script.execute: ${relay_id}_record_on_time
+switch:
+  - platform: gpio
+    id: ${relay_id}
+    name: ${relay_name}
+    pin: ${relay_pin}
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              lambda: return id(${relay_ready_id});
+            then:
+              - lambda: |-
+                  id(${relay_id}_last_state) = true;
+                  id(${relay_started_id}) = millis();
+                  id(${relay_id}_auto_off_started_ms) = millis();
+                  id(${relay_active_id}) = true;
+              - counter.increment: ${relay_cycles_id}
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              lambda: return id(${relay_ready_id});
+            then:
+              - if:
+                  condition:
+                    lambda: return id(${relay_active_id});
+                  then:
+                    - script.execute: ${relay_id}_record_on_time
+                    - counter.increment: ${relay_cycles_id}
+              - lambda: |-
+                  id(${relay_id}_last_state) = false;
+                  id(${relay_active_id}) = false;
+  - platform: template
+    id: ${relay_button_lock_id}
+    name: ${relay_name_prefix}Button Lock
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+  - platform: template
+    id: ${relay_auto_off_id}
+    name: ${relay_name_prefix}Auto Off Timer
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    on_turn_on:
+      then:
+        - script.execute: ${relay_auto_off_script_id}
+binary_sensor:
+  - platform: gpio
+    id: ${relay_id}_button
+    name: ${relay_name_prefix}Button
+    internal: false
+    pin:
+      number: ${relay_button_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on_off: ${relay_button_debounce}
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: return !id(${relay_button_lock_id}).state;
+            then:
+              - switch.toggle: ${relay_id}
+preferences:
+  flash_write_interval: 5min
+globals:
+  - id: ${relay_ready_id}
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: ${relay_id}_on_ms
+    type: uint64_t
+    restore_value: true
+    initial_value: '0'
+  - id: ${relay_started_id}
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
+  - id: ${relay_active_id}
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: ${relay_id}_last_state
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+  - id: ${relay_id}_auto_off_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
+select:
+  - platform: template
+    id: ${relay_power_on_behavior_id}
+    name: ${relay_name_prefix}Power On Behavior
+    entity_category: config
+    options:
+      - Always Off
+      - Always On
+      - Restore Last State
+    initial_option: Restore Last State
+    restore_value: true
+    optimistic: true
+number:
+  - platform: template
+    id: ${relay_auto_off_delay_id}
+    name: ${relay_name_prefix}Auto Off Delay
+    entity_category: config
+    unit_of_measurement: min
+    min_value: 1
+    max_value: 1440
+    step: 1
+    initial_value: 60
+    restore_value: true
+    optimistic: true
+    icon: mdi:timer-outline
+    on_value:
+      - then:
+          - script.execute: ${relay_auto_off_script_id}
+sensor:
+  - platform: counter
+    id: ${relay_cycles_id}
+    name: ${relay_name_prefix}Lifetime Relay Cycles
+    entity_category: diagnostic
+    state_class: total_increasing
+    restore: true
+    accuracy_decimals: 0
+    icon: mdi:restart
+  - platform: counter
+    id: ${relay_button_presses_id}
+    name: ${relay_name_prefix}Lifetime Button Presses
+    entity_category: diagnostic
+    state_class: total_increasing
+    restore: true
+    binary_sensor: ${relay_id}_button
+    accuracy_decimals: 0
+    icon: mdi:gesture-tap-button
+  - platform: template
+    id: ${relay_on_time_id}
+    name: ${relay_name_prefix}Lifetime Relay On Time
+    entity_category: diagnostic
+    device_class: duration
+    state_class: total_increasing
+    unit_of_measurement: h
+    accuracy_decimals: 3
+    update_interval: 60s
+    lambda: |-
+      const uint32_t elapsed = id(${relay_active_id}) ? uint32_t(millis() - id(${relay_started_id})) : 0;
+      return (id(${relay_id}_on_ms) + elapsed) / 3600000.0;
+    filters:
+      - delta: 0.001
+button:
+  - platform: template
+    id: ${relay_id}_reset_relay_statistics
+    name: ${relay_name_prefix}Reset Relay Statistics
+    entity_category: config
+    icon: mdi:autorenew
+    on_press:
+      then:
+        - counter.set_value:
+            id: ${relay_cycles_id}
+            value: 0
+        - lambda: |-
+            id(${relay_id}_on_ms) = 0;
+            id(${relay_started_id}) = millis();
+            id(${relay_on_time_id}).publish_state(0.0f);
+  - platform: template
+    id: ${relay_id}_reset_button_statistics
+    name: ${relay_name_prefix}Reset Button Statistics
+    entity_category: config
+    icon: mdi:autorenew
+    on_press:
+      then:
+        - counter.set_value:
+            id: ${relay_button_presses_id}
+            value: 0
+script:
+  - id: ${relay_id}_record_on_time
+    then:
+      - lambda: |-
+          if (id(${relay_active_id})) {
+            const uint32_t now = millis();
+            id(${relay_id}_on_ms) += uint32_t(now - id(${relay_started_id}));
+            id(${relay_started_id}) = now;
+            id(${relay_on_time_id}).publish_state(id(${relay_id}_on_ms) / 3600000.0);
+          }
+  - id: ${relay_auto_off_script_id}
+    mode: restart
+    then:
+      - lambda: id(${relay_id}_auto_off_started_ms) = millis();
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: return id(${relay_ready_id}) && id(${relay_auto_off_id}).state && id(${relay_id}).state &&
+              uint32_t(millis() - id(${relay_id}_auto_off_started_ms)) >= uint32_t(id(${relay_auto_off_delay_id}).state *
+              60000.0f);
+          then:
+            - switch.turn_off: ${relay_id}
+  - interval: 1min
+    then:
+      - script.execute: ${relay_id}_record_on_time

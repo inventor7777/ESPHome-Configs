@@ -9,6 +9,10 @@ esp32:
   variant: esp32c3
   framework:
     type: esp-idf
+    
+remote_shell:
+  commands:
+    elf: false
 
 packages:
   rgb_led: !include

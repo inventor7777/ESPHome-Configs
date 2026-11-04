@@ -1,4 +1,5 @@
 defaults:
+  status_led_platform: ledc
   status_led_name: "Status LED"
   status_led_gpio: GPIO2
   status_led_inverted: "false"
@@ -36,7 +37,7 @@ button:
             transition_length: 1.5s
 
 output:
-  - platform: ledc
+  - platform: ${status_led_platform}
     pin: ${status_led_gpio}
     id: status_led_out
     inverted: ${status_led_inverted}

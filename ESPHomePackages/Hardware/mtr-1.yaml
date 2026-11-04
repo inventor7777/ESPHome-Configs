@@ -19,6 +19,10 @@ esp32:
   flash_size: 4MB
   framework:
     type: esp-idf
+    
+remote_shell:
+  commands:
+    elf: false
 
 globals:
   - id: ltr390_last_update

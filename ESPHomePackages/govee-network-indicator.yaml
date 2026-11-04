@@ -1,0 +1,55 @@
+# Requires the component's network_status select with id: govee_network_status.
+# Override govee_indicator_display with a boolean expression for display visibility.
+# Manual choices persist until the automatic connection/display state changes.
+defaults:
+  govee_indicator_display: "true"
+
+globals:
+  - id: govee_last_automatic_network_status
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+
+script:
+  - id: govee_update_network_status
+    parameters:
+      option: string
+    then:
+      - if:
+          condition:
+            lambda: return option != id(govee_last_automatic_network_status);
+          then:
+            - select.set:
+                id: govee_network_status
+                option: !lambda return option;
+            - lambda: |-
+                if (id(govee_network_status).current_option() == option)
+                  id(govee_last_automatic_network_status) = option;
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            and:
+              - wifi.enabled:
+              - lambda: return ${govee_indicator_display};
+          then:
+            - if:
+                condition:
+                  and:
+                    - wifi.connected:
+                    - api.connected:
+                        state_subscription_only: true
+                then:
+                  - script.execute:
+                      id: govee_update_network_status
+                      option: Connected
+                else:
+                  - script.execute:
+                      id: govee_update_network_status
+                      option: Connecting
+          else:
+            - script.execute:
+                id: govee_update_network_status
+                option: "Off"

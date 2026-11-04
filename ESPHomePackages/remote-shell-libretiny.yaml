@@ -1,0 +1,51 @@
+# Realtek AmebaZ2 backend on LibreTiny; unsupported families fail validation.
+# Override with substitutions, !include vars, or remote_shell: in the device YAML.
+defaults:
+  remote_shell_component_path: "Components/esphome_remote_shell/components"
+  remote_shell_port: "23"
+  remote_shell_idle_timeout: "5min"
+  remote_shell_username: !secret remote_shell_username
+  remote_shell_password: !secret remote_shell_password
+  remote_shell_commands_system: "true"
+  remote_shell_commands_memory: "true"
+  remote_shell_commands_network: "true"
+  remote_shell_commands_esphome: "true"
+  remote_shell_commands_wifi: "true"
+  remote_shell_commands_tasks: "true"
+  remote_shell_commands_gpio: "true"
+  remote_shell_commands_nvs: "true"
+  remote_shell_commands_sleep: "true"
+  remote_shell_commands_low_level: "false"
+  remote_shell_commands_efuse: "true"
+  remote_shell_commands_diagnostics: "true"
+  remote_shell_commands_log: "true"
+  remote_shell_commands_packet_trace: "false"
+  remote_shell_profiling: "false"
+
+external_components:
+  - source:
+      type: local
+      path: ${remote_shell_component_path}
+    components: [remote_shell]
+
+remote_shell:
+  username: ${remote_shell_username}
+  password: ${remote_shell_password}
+  port: ${remote_shell_port}
+  idle_timeout: ${remote_shell_idle_timeout}
+  profiling: ${remote_shell_profiling}
+  commands:
+    system: ${remote_shell_commands_system}
+    memory: ${remote_shell_commands_memory}
+    network: ${remote_shell_commands_network}
+    esphome: ${remote_shell_commands_esphome}
+    wifi: ${remote_shell_commands_wifi}
+    tasks: ${remote_shell_commands_tasks}
+    gpio: ${remote_shell_commands_gpio}
+    nvs: ${remote_shell_commands_nvs}
+    sleep: ${remote_shell_commands_sleep}
+    low_level: ${remote_shell_commands_low_level}
+    efuse: ${remote_shell_commands_efuse}
+    diagnostics: ${remote_shell_commands_diagnostics}
+    log: ${remote_shell_commands_log}
+    packet_trace: ${remote_shell_commands_packet_trace}

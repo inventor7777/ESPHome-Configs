@@ -1,0 +1,38 @@
+# Temporary LibreTiny UART recovery; requires govee_mcu_connected, restart_button,
+# and uart-addons.yaml for the bus named by govee_recovery_uart.
+interval:
+  - interval: 5min
+    startup_delay: 5min
+    then:
+      - logger.log:
+          level: INFO
+          format: "Periodic maintenance: resetting UART"
+      - button.press: ${govee_recovery_uart}_reset
+
+binary_sensor:
+  - platform: template
+    id: govee_mcu_uart_reset_timeout
+    internal: true
+    trigger_on_initial_state: true
+    lambda: |-
+      return id(govee_mcu_connected).has_state() && !id(govee_mcu_connected).state;
+    filters:
+      - delayed_on: 1min
+    on_press:
+      - logger.log:
+          level: WARN
+          format: "MCU disconnected for 1 minute; resetting UART"
+      - button.press: ${govee_recovery_uart}_reset
+  - platform: template
+    id: govee_mcu_recovery_timeout
+    internal: true
+    trigger_on_initial_state: true
+    lambda: |-
+      return id(govee_mcu_connected).has_state() && !id(govee_mcu_connected).state;
+    filters:
+      - delayed_on: 5min
+    on_press:
+      - logger.log:
+          level: WARN
+          format: "MCU disconnected for 5 minutes; restarting Wi-Fi chip"
+      - button.press: restart_button

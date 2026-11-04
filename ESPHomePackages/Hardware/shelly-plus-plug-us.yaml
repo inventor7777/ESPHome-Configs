@@ -1,20 +1,24 @@
-esphome:
-  on_boot:
-    priority: 600
-    then:
-      - if:
-          condition:
-            lambda: |-
-              const auto behavior = id(power_on_behavior).current_option();
-              return behavior == "Always On" || (behavior == "Restore Last State" && id(outlet_last_state));
-          then:
-            - switch.turn_on: outlet
-
-# GPIO assignments recovered from Shelly PlugUS 1.7.5 firmware.
-# Calibrated against a 119.65 V outlet and an incandescent load measured by a
-# Third Reality plug: 0.87 A and 102.5 W.
-# Verify NTC accuracy before relying on its thermal cutoff.
-  
+# Shelly PlugUS: calibrated metering/protection and device-specific LED behavior.
+# GPIOs recovered from stock 1.7.5; calibration reference: 119.65 V, 0.87 A, 102.5 W.
+# The NTC calibration still needs verification before relying on its thermal cutoff.
+packages:
+  - !include
+    file: ../relay.yaml
+    vars:
+      relay_pin: GPIO32
+      relay_button_pin: GPIO4
+      relay_button_debounce: 5ms
+      relay_button_lock_id: button_lock
+      relay_auto_off_id: auto_off_timer
+      relay_auto_off_delay_id: auto_off_delay
+      relay_power_on_behavior_id: power_on_behavior
+      relay_cycles_id: lifetime_relay_cycles
+      relay_button_presses_id: lifetime_button_presses
+      relay_on_time_id: lifetime_relay_on_time
+      relay_started_id: relay_on_started_ms
+      relay_active_id: relay_on_timer_active
+      relay_auto_off_script_id: auto_off_countdown
+      relay_ready_id: statistics_ready
 esp32:
   variant: ESP32
   flash_size: 4MB
@@ -26,17 +30,14 @@ esp32:
     type: esp-idf
 
 substitutions:
-  voltage_divider: "2121.4"
+  voltage_divider: '2121.4'
   # 0.0012184 * (0.88 A / 0.90 A)
-  current_resistor: "0.0011913"
+  current_resistor: '0.0011913'
   # 1.094 * (108 W / 102 W)
-  power_calibration: "1.1584"
+  power_calibration: '1.1584'
 
 # Retain the lifetime energy total in ESP32 NVS. Changes are coalesced before
 # flash writes to limit wear; a sudden loss of power can lose up to 5 minutes.
-preferences:
-  flash_write_interval: 5min
-
 globals:
   - id: lifetime_energy_kwh
     type: double
@@ -46,30 +47,6 @@ globals:
     type: float
     restore_value: false
     initial_value: '0.0'
-  - id: lifetime_relay_on_seconds
-    type: uint64_t
-    restore_value: true
-    initial_value: '0'
-  - id: relay_on_started_ms
-    type: uint32_t
-    restore_value: false
-    initial_value: '0'
-  - id: relay_on_timer_active
-    type: bool
-    restore_value: false
-    initial_value: 'false'
-  - id: outlet_last_state
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: lifetime_relay_cycles_count
-    type: uint32_t
-    restore_value: true
-    initial_value: '0'
-  - id: lifetime_button_presses_count
-    type: uint32_t
-    restore_value: true
-    initial_value: '0'
   - id: peak_power_w
     type: float
     restore_value: true
@@ -162,26 +139,19 @@ script:
       - delay: !lambda return (uint32_t) (id(fault_reset_delay).state * 60000.0f);
       - if:
           condition:
-            lambda: return id(automatic_fault_reset_enabled).state && !id(outlet).state && (id(overcurrent_fault) || id(overvoltage_fault) || id(undervoltage_fault) || id(overpower_fault) || id(overheating_fault));
+            lambda: return id(automatic_fault_reset_enabled).state && !id(outlet).state && (id(overcurrent_fault) ||
+              id(overvoltage_fault) || id(undervoltage_fault) || id(overpower_fault) || id(overheating_fault));
           then:
             - switch.turn_on: outlet
-  - id: auto_off_countdown
-    mode: restart
-    then:
-      - delay: !lambda return (uint32_t) (id(auto_off_delay).state * 60000.0f);
-      - if:
-          condition:
-            lambda: return id(auto_off_timer).state && id(outlet).state;
-          then:
-            - switch.turn_off: outlet
   - id: button_lock_feedback
     mode: restart
     then:
       - if:
           condition:
-            lambda: return !(id(overcurrent_fault) || id(overvoltage_fault) || id(undervoltage_fault) || id(overpower_fault) || id(overheating_fault));
+            lambda: return !(id(overcurrent_fault) || id(overvoltage_fault) || id(undervoltage_fault) ||
+              id(overpower_fault) || id(overheating_fault));
           then:
-            - delay: 250ms 
+            - delay: 250ms
             - light.turn_on:
                 id: red_led
                 brightness: 100%
@@ -215,7 +185,8 @@ script:
           then:
             - if:
                 condition:
-                  lambda: return id(overcurrent_fault) || id(overvoltage_fault) || id(undervoltage_fault) || id(overpower_fault) || id(overheating_fault);
+                  lambda: return id(overcurrent_fault) || id(overvoltage_fault) || id(undervoltage_fault) ||
+                    id(overpower_fault) || id(overheating_fault);
                 then:
                   - if:
                       condition:
@@ -277,47 +248,32 @@ script:
       - script.execute: update_status_led
 
 switch:
-  - platform: gpio
-    id: outlet
-    name: Outlet
-    pin: GPIO32
-    restore_mode: ALWAYS_OFF
+  - id: !extend outlet
     on_turn_on:
-      - lambda: |-
-          id(outlet_last_state) = true;
-          id(relay_on_started_ms) = millis();
-          id(relay_on_timer_active) = true;
-          id(lifetime_relay_cycles_count)++;
-          id(lifetime_relay_cycles).publish_state(id(lifetime_relay_cycles_count));
-      - script.execute: clear_protection_faults
-      - if:
-          condition:
-            switch.is_on: auto_off_timer
-          then:
-            - script.execute: auto_off_countdown
+      then:
+        - if:
+            condition:
+              lambda: return id(statistics_ready);
+            then:
+              - script.execute: clear_protection_faults
     on_turn_off:
-      - script.stop: auto_off_countdown
-      - lambda: |-
-          id(outlet_last_state) = false;
-          if (id(relay_on_timer_active)) {
-            id(lifetime_relay_on_seconds) += (millis() - id(relay_on_started_ms)) / 1000;
-            id(relay_on_timer_active) = false;
-            id(lifetime_relay_on_time).publish_state(id(lifetime_relay_on_seconds) / 3600.0);
-          }
-          id(lifetime_relay_cycles_count)++;
-          id(lifetime_relay_cycles).publish_state(id(lifetime_relay_cycles_count));
-      - if:
-          condition:
-            lambda: return !id(protection_shutdown);
-          then:
-            - script.execute: clear_protection_faults
-          else:
-            - if:
-                condition:
-                  switch.is_on: automatic_fault_reset_enabled
-                then:
-                  - script.execute: automatic_fault_reset
-            - lambda: id(protection_shutdown) = false;
+      then:
+        - if:
+            condition:
+              lambda: return id(statistics_ready);
+            then:
+              - if:
+                  condition:
+                    lambda: return !id(protection_shutdown);
+                  then:
+                    - script.execute: clear_protection_faults
+                  else:
+                    - if:
+                        condition:
+                          switch.is_on: automatic_fault_reset_enabled
+                        then:
+                          - script.execute: automatic_fault_reset
+                    - lambda: id(protection_shutdown) = false;
   - platform: template
     id: led_enabled
     name: LED Enabled
@@ -339,12 +295,6 @@ switch:
     on_turn_off:
       - script.execute: update_status_led
   - platform: template
-    id: button_lock
-    name: Button Lock
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_OFF
-    optimistic: true
-  - platform: template
     id: automatic_fault_reset_enabled
     name: Automatic Fault Reset
     entity_category: config
@@ -352,34 +302,6 @@ switch:
     optimistic: true
     on_turn_off:
       - script.stop: automatic_fault_reset
-  - platform: template
-    id: auto_off_timer
-    name: Auto Off Timer
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_OFF
-    optimistic: true
-    on_turn_on:
-      - if:
-          condition:
-            switch.is_on: outlet
-          then:
-            - script.execute: auto_off_countdown
-    on_turn_off:
-      - script.stop: auto_off_countdown
-
-select:
-  - platform: template
-    id: power_on_behavior
-    name: Power On Behavior
-    entity_category: config
-    options:
-      - Always Off
-      - Always On
-      - Restore Last State
-    initial_option: Restore Last State
-    restore_value: true
-    optimistic: true
-
 binary_sensor:
   - platform: template
     id: overcurrent_problem
@@ -411,27 +333,14 @@ binary_sensor:
     device_class: problem
     entity_category: diagnostic
     lambda: return id(overheating_fault);
-  - platform: gpio
-    name: Button
-    pin:
-      number: GPIO4
-      mode: INPUT_PULLUP
-      inverted: true
+  - id: !extend outlet_button
     on_press:
-      - lambda: |-
-          id(lifetime_button_presses_count)++;
-          id(lifetime_button_presses).publish_state(id(lifetime_button_presses_count));
-      - if:
-          condition:
-            switch.is_off: button_lock
-          then:
-            - switch.toggle: outlet
-          else:
-            - script.execute: button_lock_feedback
-    filters:
-      - delayed_on_off: 5ms
-
-# Both LEDs are active-low; GPIO26 is red and GPIO33 is blue.
+      then:
+        - if:
+            condition:
+              switch.is_on: button_lock
+            then:
+              - script.execute: button_lock_feedback
 output:
   - platform: ledc
     id: led_gpio26
@@ -597,35 +506,6 @@ sensor:
     lambda: return id(lifetime_energy_kwh);
 
   - platform: template
-    id: lifetime_relay_on_time
-    name: Lifetime Relay On Time
-    entity_category: diagnostic
-    device_class: duration
-    state_class: total_increasing
-    unit_of_measurement: h
-    accuracy_decimals: 3
-    filters:
-      - delta: 0.05
-    lambda: |-
-      const float current_on_seconds = id(relay_on_timer_active) ? (millis() - id(relay_on_started_ms)) / 1000.0f : 0.0f;
-      return (id(lifetime_relay_on_seconds) + current_on_seconds) / 3600.0f;
-  - platform: template
-    id: lifetime_relay_cycles
-    name: Lifetime Relay Cycles
-    entity_category: diagnostic
-    state_class: total_increasing
-    accuracy_decimals: 0
-    lambda: return id(lifetime_relay_cycles_count);
-    icon: "mdi:restart"
-  - platform: template
-    id: lifetime_button_presses
-    name: Lifetime Button Presses
-    entity_category: diagnostic
-    state_class: total_increasing
-    accuracy_decimals: 0
-    lambda: return id(lifetime_button_presses_count);
-    icon: "mdi:gesture-tap-button"
-  - platform: template
     id: peak_power
     name: Peak Power
     entity_category: diagnostic
@@ -687,7 +567,7 @@ sensor:
     state_class: total_increasing
     accuracy_decimals: 0
     lambda: return id(overcurrent_trips_count);
-    icon: "mdi:flash-alert"
+    icon: mdi:flash-alert
   - platform: template
     id: overvoltage_trips
     name: Overvoltage Trips
@@ -695,7 +575,7 @@ sensor:
     state_class: total_increasing
     accuracy_decimals: 0
     lambda: return id(overvoltage_trips_count);
-    icon: "mdi:flash-alert"
+    icon: mdi:flash-alert
   - platform: template
     id: undervoltage_trips
     name: Undervoltage Trips
@@ -703,7 +583,7 @@ sensor:
     state_class: total_increasing
     accuracy_decimals: 0
     lambda: return id(undervoltage_trips_count);
-    icon: "mdi:flash-alert"
+    icon: mdi:flash-alert
   - platform: template
     id: overpower_trips
     name: Overpower Trips
@@ -711,7 +591,7 @@ sensor:
     state_class: total_increasing
     accuracy_decimals: 0
     lambda: return id(overpower_trips_count);
-    icon: "mdi:flash-alert"
+    icon: mdi:flash-alert
   - platform: template
     id: overtemperature_trips
     name: Overheating Trips
@@ -719,7 +599,7 @@ sensor:
     state_class: total_increasing
     accuracy_decimals: 0
     lambda: return id(overtemperature_trips_count);
-    icon: "mdi:thermometer-alert"
+    icon: mdi:thermometer-alert
 
   - platform: template
     id: apparent_power
@@ -792,7 +672,7 @@ text_sensor:
     name: Last Trip Reason
     entity_category: diagnostic
     lambda: return id(last_trip_reason_value);
-    icon: "mdi:alert"
+    icon: mdi:alert
 
 button:
   - platform: template
@@ -810,7 +690,7 @@ button:
           id(peak_voltage).publish_state(0.0f);
           id(minimum_voltage).publish_state(0.0f);
           id(peak_internal_temperature).publish_state(0.0f);
-    icon: "mdi:autorenew"
+    icon: mdi:autorenew
   - platform: template
     name: Reset Trips
     entity_category: config
@@ -828,26 +708,7 @@ button:
           id(overtemperature_trips).publish_state(0);
           id(last_trip_reason_value) = "None";
           id(last_trip_reason).publish_state("None");
-    icon: "mdi:autorenew"
-  - platform: template
-    name: Reset Relay Statistics
-    entity_category: config
-    on_press:
-      - lambda: |-
-          id(lifetime_relay_on_seconds) = 0;
-          id(relay_on_started_ms) = millis();
-          id(lifetime_relay_cycles_count) = 0;
-          id(lifetime_relay_on_time).publish_state(0.0f);
-          id(lifetime_relay_cycles).publish_state(0);
-    icon: "mdi:autorenew"
-  - platform: template
-    name: Reset Button Statistics
-    entity_category: config
-    on_press:
-      - lambda: |-
-          id(lifetime_button_presses_count) = 0;
-          id(lifetime_button_presses).publish_state(0);
-    icon: "mdi:autorenew"
+    icon: mdi:autorenew
   - platform: template
     name: Reset Lifetime Energy
     entity_category: config
@@ -857,13 +718,13 @@ button:
           id(energy_since_boot_wh) = id(bl0937_energy_since_boot).get_state();
           id(lifetime_energy).publish_state(0.0);
 
-    icon: "mdi:autorenew"
+    icon: mdi:autorenew
 number:
   - platform: template
     id: blue_led_brightness
     name: Blue LED Brightness
     entity_category: config
-    unit_of_measurement: "%"
+    unit_of_measurement: '%'
     min_value: 1
     max_value: 100
     step: 1
@@ -878,12 +739,12 @@ number:
             - light.turn_on:
                 id: blue_led
                 brightness: !lambda return x / 100.0f;
-    icon: "mdi:led-on"
+    icon: mdi:led-on
   - platform: template
     id: standby_led_brightness
     name: Standby LED Brightness
     entity_category: config
-    unit_of_measurement: "%"
+    unit_of_measurement: '%'
     min_value: 1
     max_value: 100
     step: 1
@@ -898,7 +759,7 @@ number:
             - light.turn_on:
                 id: blue_led
                 brightness: !lambda return x / 100.0f;
-    icon: "mdi:led-off"
+    icon: mdi:led-off
   - platform: template
     id: overcurrent_limit
     name: Overcurrent Limit
@@ -971,33 +832,3 @@ number:
     initial_value: 60
     restore_value: true
     optimistic: true
-  - platform: template
-    id: auto_off_delay
-    name: Auto Off Delay
-    entity_category: config
-    device_class: duration
-    unit_of_measurement: min
-    min_value: 1
-    max_value: 1440
-    step: 1
-    initial_value: 60
-    restore_value: true
-    optimistic: true
-    set_action:
-      - if:
-          condition:
-            lambda: return id(auto_off_timer).state && id(outlet).state;
-          then:
-            - script.execute: auto_off_countdown
-
-interval:
-  - interval: 1min
-    then:
-      - if:
-          condition:
-            lambda: return id(relay_on_timer_active);
-          then:
-            - lambda: |-
-                id(lifetime_relay_on_seconds) += (millis() - id(relay_on_started_ms)) / 1000;
-                id(relay_on_started_ms) = millis();
-                id(lifetime_relay_on_time).publish_state(id(lifetime_relay_on_seconds) / 3600.0);
